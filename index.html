@@ -212,6 +212,18 @@
 
   footer.note{text-align:center;font-size:11px;color:var(--muted);margin-top:40px;padding:0 20px;}
 
+  .feedback-box{
+    display:flex;align-items:center;gap:10px;
+    max-width:1100px;margin:16px auto 0;
+    background:var(--paper);border:1px solid var(--line);border-radius:14px;
+    padding:12px 14px;text-decoration:none;color:var(--ink);
+    transition:border-color .15s ease;
+  }
+  .feedback-box:hover{border-color:var(--gold);}
+  .feedback-icon{font-size:20px;flex-shrink:0;}
+  .feedback-title{display:block;font-size:13px;font-weight:700;}
+  .feedback-sub{display:block;font-size:11px;color:var(--muted);margin-top:1px;}
+
   #intro{
     position:fixed;inset:0;z-index:3000;background:var(--red);
     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
@@ -304,6 +316,14 @@
   </div>
 
   <footer class="note" id="footerNote">دليلك — دليل مجاني لمحلات النزهة وقباء. التواصل والطلب بيتم مباشرة مع المحل.</footer>
+
+  <a class="feedback-box" id="feedbackBox" href="#" target="_blank" rel="noopener">
+    <span class="feedback-icon">💬</span>
+    <span>
+      <span class="feedback-title" id="feedbackTitle">عندك اقتراح أو شكوى؟</span>
+      <span class="feedback-sub" id="feedbackSub">ابعتلنا على واتساب</span>
+    </span>
+  </a>
 </div>
 
 <div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
@@ -312,6 +332,7 @@
 </div>
 
 <script>
+const FEEDBACK_WHATSAPP = '201022097217';
 let LANG = 'ar';
 let THEME = 'light';
 let currentView = 'home';
@@ -326,7 +347,9 @@ const I18N = {
     addressLabel:'العنوان', phoneLabel:'تليفون',
     call:'📞 اتصال', whatsapp:'💬 واتساب', map:'🗺️ الموقع',
     searchResultsFor:'نتايج البحث عن', noResults:'مفيش نتايج',
-    footer:'دليلك — دليل مجاني لمحلات النزهة وقباء. التواصل والطلب بيتم مباشرة مع المحل.'
+    footer:'دليلك — دليل مجاني لمحلات النزهة وقباء. التواصل والطلب بيتم مباشرة مع المحل.',
+    feedbackTitle:'عندك اقتراح أو شكوى؟', feedbackSub:'ابعتلنا على واتساب',
+    feedbackMsg:'مرحبًا، عندي اقتراح/شكوى بخصوص تطبيق دليلك: '
   },
   en:{
     brandName:'Daleelak', brandSub:'Your neighborhood shop guide', area:'📍 Nozha, Qubaa',
@@ -337,7 +360,9 @@ const I18N = {
     addressLabel:'Address', phoneLabel:'Phone',
     call:'📞 Call', whatsapp:'💬 WhatsApp', map:'🗺️ Location',
     searchResultsFor:'Results for', noResults:'No results found',
-    footer:'Daleelak — a free directory for Nozha and Qubaa shops. Contact and ordering happens directly with the shop.'
+    footer:'Daleelak — a free directory for Nozha and Qubaa shops. Contact and ordering happens directly with the shop.',
+    feedbackTitle:'Got a suggestion or complaint?', feedbackSub:'Message us on WhatsApp',
+    feedbackMsg:'Hi, I have a suggestion/complaint about the Daleelak app: '
   }
 };
 
@@ -385,6 +410,9 @@ function applyStaticText(){
   document.getElementById('featuredTitle').textContent = t('featuredTitle');
   document.getElementById('featuredSub').textContent = t('featuredSub');
   document.getElementById('footerNote').textContent = t('footer');
+  document.getElementById('feedbackTitle').textContent = t('feedbackTitle');
+  document.getElementById('feedbackSub').textContent = t('feedbackSub');
+  document.getElementById('feedbackBox').href = `https://wa.me/${FEEDBACK_WHATSAPP}?text=${encodeURIComponent(t('feedbackMsg'))}`;
   document.getElementById('langBtn').textContent = LANG === 'ar' ? 'EN' : 'ع';
   document.getElementById('themeBtn').textContent = THEME === 'light' ? '🌙' : '☀️';
 }
