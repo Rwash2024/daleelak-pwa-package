@@ -355,7 +355,7 @@ async function loadData(){
 
   CATS = (cats||[]).map(c => ({id:c.id, icon:c.icon, label:{ar:c.label,en:c.label}, active:c.active}));
   SHOPS = (shops||[]).map(s => ({
-    id:s.id, catId:s.category_id, icon:s.icon, color:s.color,
+    id:s.id, catId:s.category_id, icon:s.icon, color:s.color, logoUrl:s.logo_url,
     name:{ar:s.name_ar, en:s.name_en || s.name_ar},
     tag:{ar:s.tag || '', en:s.tag || ''},
     address:{ar:s.address || '', en:s.address || ''},
@@ -363,6 +363,9 @@ async function loadData(){
     mapUrl:s.map_url || '#', menu:(s.menu_images && s.menu_images.length) ? s.menu_images : ['🏪']
   }));
 }
+
+function isImageUrl(v){ return !!v && /^https?:\/\//.test(v); }
+function logoInner(s){ return isImageUrl(s.logoUrl) ? `<img src="${s.logoUrl}" style="width:100%;height:100%;object-fit:cover;">` : s.icon; }
 
 function t(key){ return I18N[LANG][key]; }
 
@@ -394,7 +397,7 @@ function renderCats(){
 function shopCardHTML(s){
   return `
     <div class="shop-card" onclick="openShop('${s.id}')">
-      <div class="shop-logo" style="background:${s.color}">${s.icon}</div>
+      <div class="shop-logo" style="background:${s.color};overflow:hidden;">${logoInner(s)}</div>
       <div class="shop-info">
         <div class="shop-name">${s.name[LANG]}</div>
         <div class="shop-tag">${s.tag[LANG]}</div>
@@ -439,7 +442,7 @@ function renderShopDetail(id){
     <div class="detail-hero">
       <div class="detail-body">
         <div class="detail-top">
-          <div class="detail-logo" style="background:${s.color}">${s.icon}</div>
+          <div class="detail-logo" style="background:${s.color};overflow:hidden;">${logoInner(s)}</div>
           <div>
             <div class="detail-name">${s.name[LANG]}</div>
             <div class="detail-tag">${s.tag[LANG]}</div>
@@ -447,7 +450,10 @@ function renderShopDetail(id){
         </div>
         <div class="ticket-divider"><span class="dot"></span></div>
         <div class="menu-strip">
-          ${s.menu.map(m=>`<div class="menu-photo" style="background:${s.color}" onclick="openLightbox('${m}','${s.color}')">${m}</div>`).join('')}
+          ${s.menu.map(m=>isImageUrl(m)
+            ? `<div class="menu-photo" style="background:${s.color};overflow:hidden;padding:0;" onclick="openLightbox('${m}','${s.color}')"><img src="${m}" style="width:100%;height:100%;object-fit:cover;"></div>`
+            : `<div class="menu-photo" style="background:${s.color}" onclick="openLightbox('${m}','${s.color}')">${m}</div>`
+          ).join('')}
         </div>
         <div class="ticket-divider"><span class="dot"></span></div>
         <div class="info-row">
@@ -500,9 +506,13 @@ function toggleLang(){
   renderAll();
 }
 
-function openLightbox(emoji,color){
+function openLightbox(content,color){
   const box = document.getElementById('lightboxImg');
-  box.textContent = emoji;
+  if(isImageUrl(content)){
+    box.innerHTML = `<img src="${content}" style="width:100%;height:100%;object-fit:contain;border-radius:20px;">`;
+  } else {
+    box.textContent = content;
+  }
   box.style.background = color;
   document.getElementById('lightbox').classList.add('active');
 }

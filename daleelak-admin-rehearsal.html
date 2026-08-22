@@ -216,18 +216,35 @@
     </div>
 
     <div class="field-group">
-      <label>أيقونة اللوجو (إيموجي مؤقت لحد ما نضيف رفع صور)</label>
-      <input id="f_icon" placeholder="🍔" maxlength="2">
+      <label>لوجو المحل (صورة) — أو إيموجي احتياطي لو مفيش صورة</label>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div id="logoPreview" style="width:52px;height:52px;border-radius:12px;background:var(--cream);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden;flex-shrink:0;">🏪</div>
+        <input type="file" id="f_logo_file" accept="image/*" onchange="uploadImage(this,'logo')" style="flex:1;">
+      </div>
+      <input id="f_icon" placeholder="🍔ايموجي احتياطي" maxlength="2" style="margin-top:8px;">
     </div>
 
     <div class="field-group">
-      <label>صور المنيو / العروض (إيموجي مؤقت لحد ما نضيف رفع صور — لحد 4 صور)</label>
+      <label>صور المنيو / العروض (لحد 4 صور)</label>
       <div class="field-row" style="grid-template-columns:repeat(4,1fr);">
-        <input id="f_menu1" placeholder="🍔" maxlength="2">
-        <input id="f_menu2" placeholder="🍟" maxlength="2">
-        <input id="f_menu3" placeholder="🥤" maxlength="2">
-        <input id="f_menu4" placeholder="—" maxlength="2">
+        <div>
+          <div id="menuPreview1" style="width:100%;aspect-ratio:1;border-radius:9px;background:var(--cream);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden;margin-bottom:4px;">—</div>
+          <input type="file" id="f_menu_file1" accept="image/*" onchange="uploadImage(this,'menu1')" style="font-size:11px;">
+        </div>
+        <div>
+          <div id="menuPreview2" style="width:100%;aspect-ratio:1;border-radius:9px;background:var(--cream);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden;margin-bottom:4px;">—</div>
+          <input type="file" id="f_menu_file2" accept="image/*" onchange="uploadImage(this,'menu2')" style="font-size:11px;">
+        </div>
+        <div>
+          <div id="menuPreview3" style="width:100%;aspect-ratio:1;border-radius:9px;background:var(--cream);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden;margin-bottom:4px;">—</div>
+          <input type="file" id="f_menu_file3" accept="image/*" onchange="uploadImage(this,'menu3')" style="font-size:11px;">
+        </div>
+        <div>
+          <div id="menuPreview4" style="width:100%;aspect-ratio:1;border-radius:9px;background:var(--cream);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden;margin-bottom:4px;">—</div>
+          <input type="file" id="f_menu_file4" accept="image/*" onchange="uploadImage(this,'menu4')" style="font-size:11px;">
+        </div>
       </div>
+      <div class="hint" id="uploadHint" style="margin-top:6px;"></div>
     </div>
 
     <div class="field-group">
@@ -334,7 +351,7 @@ async function loadShops(){
     id:s.id, icon:s.icon, color:s.color, category:s.category_id,
     name_ar:s.name_ar, name_en:s.name_en, tag:s.tag, address:s.address,
     phone:s.phone, whatsapp:s.whatsapp, map:s.map_url, menu:s.menu_images,
-    plan:s.plan, expiry:s.expiry_date
+    logo_url:s.logo_url, plan:s.plan, expiry:s.expiry_date
   }));
 }
 
@@ -461,7 +478,7 @@ function renderShops(){
   }
   container.innerHTML = SHOPS.map(s => `
     <div class="shop-row">
-      <div class="row-logo" style="background:${s.color}">${s.icon}</div>
+      <div class="row-logo" style="background:${s.color};overflow:hidden;">${isImageUrl(s.logo_url) ? `<img src="${s.logo_url}" style="width:100%;height:100%;object-fit:cover;">` : s.icon}</div>
       <div class="row-info">
         <div class="row-name">${s.name_ar}</div>
         <div class="row-meta">${catLabel(s.category)} · ${s.tag}${s.menu && s.menu.length ? ' · ' + s.menu.length + ' صورة منيو' : ''}</div>
@@ -473,6 +490,40 @@ function renderShops(){
       </div>
     </div>
   `).join('');
+}
+
+function isImageUrl(v){ return !!v && /^https?:\/\//.test(v); }
+
+function renderPreview(el, value, fallback){
+  if(isImageUrl(value)){
+    el.innerHTML = `<img src="${value}" style="width:100%;height:100%;object-fit:cover;">`;
+  } else {
+    el.textContent = value || fallback;
+  }
+}
+
+let pendingLogoUrl = null;
+let pendingMenuUrls = [null,null,null,null];
+
+async function uploadImage(input, slot){
+  const file = input.files[0];
+  if(!file) return;
+  const hint = document.getElementById('uploadHint');
+  hint.textContent = 'بيرفع الصورة...';
+  const path = `${slot}-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${file.name.split('.').pop()}`;
+  const {error} = await db.storage.from('shop-images').upload(path, file);
+  if(error){ hint.textContent = 'حصل خطأ في رفع الصورة'; console.error(error); return; }
+  const {data} = db.storage.from('shop-images').getPublicUrl(path);
+  const url = data.publicUrl;
+  hint.textContent = '';
+  if(slot === 'logo'){
+    pendingLogoUrl = url;
+    renderPreview(document.getElementById('logoPreview'), url, '🏪');
+  } else {
+    const idx = parseInt(slot.replace('menu',''), 10) - 1;
+    pendingMenuUrls[idx] = url;
+    renderPreview(document.getElementById('menuPreview'+(idx+1)), url, '—');
+  }
 }
 
 function openForm(id){
@@ -488,11 +539,18 @@ function openForm(id){
   document.getElementById('f_whatsapp').value = s ? s.whatsapp : '';
   document.getElementById('f_map').value = s ? s.map : '';
   document.getElementById('f_icon').value = s ? s.icon : '';
+
+  pendingLogoUrl = s ? (s.logo_url || null) : null;
+  renderPreview(document.getElementById('logoPreview'), pendingLogoUrl, s ? (s.icon || '🏪') : '🏪');
+
   const menu = s && s.menu ? s.menu : ['','','',''];
-  document.getElementById('f_menu1').value = menu[0] || '';
-  document.getElementById('f_menu2').value = menu[1] || '';
-  document.getElementById('f_menu3').value = menu[2] || '';
-  document.getElementById('f_menu4').value = menu[3] || '';
+  pendingMenuUrls = [menu[0]||null, menu[1]||null, menu[2]||null, menu[3]||null];
+  for(let i=0;i<4;i++){
+    document.getElementById('f_menu_file'+(i+1)).value = '';
+    renderPreview(document.getElementById('menuPreview'+(i+1)), pendingMenuUrls[i], '—');
+  }
+  document.getElementById('uploadHint').textContent = '';
+
   document.getElementById('f_plan').value = s ? (s.plan || 'none') : 'none';
   formOriginalPlan = s ? (s.plan || 'none') : 'none';
   updatePlanPreview();
@@ -545,12 +603,8 @@ async function saveShop(){
     whatsapp: document.getElementById('f_whatsapp').value.trim() || phone,
     map_url: document.getElementById('f_map').value.trim(),
     icon: document.getElementById('f_icon').value.trim() || '🏪',
-    menu_images: [
-      document.getElementById('f_menu1').value.trim(),
-      document.getElementById('f_menu2').value.trim(),
-      document.getElementById('f_menu3').value.trim(),
-      document.getElementById('f_menu4').value.trim(),
-    ].filter(Boolean),
+    logo_url: pendingLogoUrl,
+    menu_images: pendingMenuUrls.filter(Boolean),
     plan,
     expiry_date,
   };
