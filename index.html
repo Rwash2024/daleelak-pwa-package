@@ -212,30 +212,6 @@
 
   footer.note{text-align:center;font-size:11px;color:var(--muted);margin-top:20px;padding:0 20px;}
 
-  .feedback-card{
-    position:relative;
-    max-width:1100px;margin:34px auto 0;
-    background:var(--paper);border:2px dashed var(--gold);border-radius:18px;
-    padding:30px 20px 22px;text-align:center;
-  }
-  .feedback-badge{
-    position:absolute;top:-24px;left:50%;transform:translateX(-50%);
-    width:48px;height:48px;border-radius:50%;
-    background:var(--red);color:#fff;font-size:20px;
-    display:flex;align-items:center;justify-content:center;
-    border:4px solid var(--cream);
-  }
-  .feedback-title{font-size:19px;margin-bottom:4px;}
-  .feedback-sub{font-size:12px;color:var(--muted);margin-bottom:8px;}
-  .feedback-divider{display:flex;align-items:center;gap:6px;margin:14px auto 16px;max-width:280px;}
-  .feedback-divider::before,.feedback-divider::after{content:"";flex:1;border-top:2px dashed var(--line);}
-  .feedback-divider .dot{width:6px;height:6px;border-radius:50%;background:var(--line);}
-  .feedback-cta{
-    display:inline-flex;align-items:center;gap:8px;
-    background:#25D366;color:#fff;font-weight:700;font-size:14px;
-    padding:12px 22px;border-radius:12px;text-decoration:none;
-  }
-
   #intro{
     position:fixed;inset:0;z-index:3000;background:var(--red);
     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
@@ -288,7 +264,7 @@
 
   <header class="top">
     <div class="top-row">
-      <div class="brand">
+      <div class="brand" onclick="showHome()" style="cursor:pointer;">
         <div class="brand-mark" id="brandMark"><img src="https://nhtqdfnmdsrhbplfkdey.supabase.co/storage/v1/object/public/shop-images/branding/logo.png" alt="Daleelak logo" style="width:100%;height:100%;object-fit:contain;border-radius:10px;"></div>
         <div>
           <div class="brand-name display" id="brandName">دليلك</div>
@@ -299,6 +275,7 @@
         <div class="area-pill" id="areaPill">📍 النزهة، قباء</div>
         <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" title="Toggle theme">🌙</button>
         <button class="icon-btn" id="langBtn" onclick="toggleLang()" title="Toggle language">EN</button>
+        <a class="icon-btn" id="feedbackBox" href="#" target="_blank" rel="noopener" style="text-decoration:none;">💬</a>
       </div>
     </div>
     <div class="search-bar">
@@ -327,14 +304,6 @@
     <div id="detailContent"></div>
   </div>
 
-  <div class="feedback-card">
-    <div class="feedback-badge">📮</div>
-    <div class="feedback-title display" id="feedbackTitle">رأيك يهمّنا</div>
-    <div class="feedback-sub" id="feedbackSub">شفت حاجة ناقصة؟ عايز نضيف محل؟ قولّنا على طول</div>
-    <div class="feedback-divider"><span class="dot"></span></div>
-    <a class="feedback-cta" id="feedbackBox" href="#" target="_blank" rel="noopener">💬 <span id="feedbackCtaLabel">ابعت رسالة واتساب</span></a>
-  </div>
-
   <footer class="note" id="footerNote">دليلك — دليل مجاني لمحلات النزهة وقباء. التواصل والطلب بيتم مباشرة مع المحل.</footer>
 </div>
 
@@ -360,8 +329,7 @@ const I18N = {
     call:'📞 اتصال', whatsapp:'💬 واتساب', map:'🗺️ الموقع',
     searchResultsFor:'نتايج البحث عن', noResults:'مفيش نتايج',
     footer:'دليلك — دليل مجاني لمحلات النزهة وقباء. التواصل والطلب بيتم مباشرة مع المحل.',
-    feedbackTitle:'رأيك يهمّنا', feedbackSub:'شفت حاجة ناقصة؟ عايز نضيف محل؟ قولّنا على طول',
-    feedbackCta:'ابعت رسالة واتساب', feedbackMsg:'مرحبًا، عندي اقتراح/شكوى بخصوص تطبيق دليلك: '
+    feedbackTitle:'رأيك يهمّنا', feedbackMsg:'مرحبًا، عندي اقتراح/شكوى بخصوص تطبيق دليلك: '
   },
   en:{
     brandName:'Daleelak', brandSub:'Your neighborhood shop guide', area:'📍 Nozha, Qubaa',
@@ -373,8 +341,7 @@ const I18N = {
     call:'📞 Call', whatsapp:'💬 WhatsApp', map:'🗺️ Location',
     searchResultsFor:'Results for', noResults:'No results found',
     footer:'Daleelak — a free directory for Nozha and Qubaa shops. Contact and ordering happens directly with the shop.',
-    feedbackTitle:'We\'d love your feedback', feedbackSub:'Missing something? Want a shop added? Tell us',
-    feedbackCta:'Message us on WhatsApp', feedbackMsg:'Hi, I have a suggestion/complaint about the Daleelak app: '
+    feedbackTitle:'We\'d love your feedback', feedbackMsg:'Hi, I have a suggestion/complaint about the Daleelak app: '
   }
 };
 
@@ -422,10 +389,9 @@ function applyStaticText(){
   document.getElementById('featuredTitle').textContent = t('featuredTitle');
   document.getElementById('featuredSub').textContent = t('featuredSub');
   document.getElementById('footerNote').textContent = t('footer');
-  document.getElementById('feedbackTitle').textContent = t('feedbackTitle');
-  document.getElementById('feedbackSub').textContent = t('feedbackSub');
-  document.getElementById('feedbackCtaLabel').textContent = t('feedbackCta');
-  document.getElementById('feedbackBox').href = `https://wa.me/${FEEDBACK_WHATSAPP}?text=${encodeURIComponent(t('feedbackMsg'))}`;
+  const feedbackBtn = document.getElementById('feedbackBox');
+  feedbackBtn.title = t('feedbackTitle');
+  feedbackBtn.href = `https://wa.me/${FEEDBACK_WHATSAPP}?text=${encodeURIComponent(t('feedbackMsg'))}`;
   document.getElementById('langBtn').textContent = LANG === 'ar' ? 'EN' : 'ع';
   document.getElementById('themeBtn').textContent = THEME === 'light' ? '🌙' : '☀️';
 }
