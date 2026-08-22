@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة التحكم — دليلك (بروفة)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lalezar&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#FBF1E4; --paper:#FFFFFF; --red:#D93829; --red-dark:#A82B1F;
+    --ink:#2B211B; --gold:#E8A33D; --gold-dark:#B87A22; --muted:#8C7A6B; --line:#E9DDC8;
+    --green:#2E7D5B; --danger:#C0392B;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--cream);font-family:'Tajawal',sans-serif;color:var(--ink);min-height:100vh;}
+  .display{font-family:'Lalezar',sans-serif;}
+  .wrap{max-width:900px;margin:0 auto;padding:20px 16px 60px;}
+
+  .demo-banner{
+    background:#3A2E22;color:#F0D9B5;font-size:12px;text-align:center;
+    padding:8px 12px;
+  }
+
+  header.top{background:var(--ink);color:#fff;padding:16px;}
+  .top-inner{max-width:900px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;}
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand-mark{width:36px;height:36px;border-radius:9px;background:var(--cream);display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden;}
+  .brand-title{font-size:16px;font-weight:700;}
+  .brand-sub{font-size:11px;opacity:.7;}
+  .logout-btn{background:none;border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:8px;padding:7px 14px;font-family:'Tajawal';font-size:13px;cursor:pointer;}
+
+  /* Login gate */
+  .gate{
+    max-width:360px;margin:80px auto;background:var(--paper);border-radius:18px;
+    border:1px solid var(--line);padding:28px 24px;text-align:center;
+  }
+  .gate-icon{font-size:36px;margin-bottom:10px;}
+  .gate h2{font-size:18px;margin:0 0 4px;}
+  .gate p{font-size:13px;color:var(--muted);margin:0 0 18px;}
+  .gate input{
+    width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--line);
+    font-family:'Tajawal';font-size:14px;margin-bottom:10px;background:var(--cream);
+  }
+  .gate-error{color:var(--danger);font-size:12px;margin-bottom:8px;display:none;}
+  .btn-primary{
+    width:100%;background:var(--red);color:#fff;border:none;border-radius:10px;
+    padding:12px;font-family:'Tajawal';font-weight:700;font-size:14px;cursor:pointer;
+  }
+
+  /* Dashboard */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0;}
+  .stat-card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center;}
+  .stat-num{font-size:22px;font-weight:800;color:var(--red);}
+  .stat-label{font-size:11px;color:var(--muted);margin-top:2px;}
+
+  .toolbar{display:flex;align-items:center;justify-content:space-between;margin:22px 0 12px;}
+  .toolbar h3{font-size:16px;margin:0;}
+  .btn-add{background:var(--green);color:#fff;border:none;border-radius:10px;padding:9px 16px;font-family:'Tajawal';font-weight:700;font-size:13px;cursor:pointer;}
+
+  .shop-row{
+    background:var(--paper);border:1px solid var(--line);border-radius:14px;
+    padding:12px 14px;display:flex;align-items:center;gap:12px;margin-bottom:10px;
+  }
+  .row-logo{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff;flex-shrink:0;}
+  .row-info{flex:1;min-width:0;}
+  .row-name{font-weight:700;font-size:14px;}
+  .row-meta{font-size:11px;color:var(--muted);}
+  .row-actions{display:flex;gap:6px;flex-shrink:0;}
+  .icon-btn{
+    width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--cream);
+    cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;
+  }
+  .icon-btn.danger{color:var(--danger);border-color:#F0C4BC;}
+  .expiry-badge{
+    font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;flex-shrink:0;
+  }
+  .expiry-ok{background:#E1F0E8;color:var(--green);}
+  .expiry-soon{background:#FCEFDC;color:var(--gold-dark);}
+  .expiry-over{background:#FBE4E1;color:var(--danger);}
+  .expiry-none{background:#EFEAE0;color:var(--muted);}
+
+  .empty{text-align:center;color:var(--muted);font-size:13px;padding:30px 10px;}
+
+  /* Modal form */
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;
+    align-items:flex-start;justify-content:center;z-index:999;padding:30px 16px;overflow-y:auto;
+  }
+  .modal-overlay.active{display:flex;}
+  .modal{
+    background:var(--paper);border-radius:18px;max-width:480px;width:100%;padding:20px;
+  }
+  .modal h3{margin:0 0 4px;font-size:17px;}
+  .modal .hint{font-size:12px;color:var(--muted);margin-bottom:16px;}
+  .field-group{margin-bottom:12px;}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px;}
+  input,textarea{
+    width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--line);
+    font-family:'Tajawal';font-size:13px;background:var(--cream);
+  }
+  select{
+    width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--line);
+    font-family:'Tajawal';font-size:13px;background:var(--cream);color:var(--ink);
+  }
+  textarea{resize:vertical;min-height:50px;}
+  .field-error{color:var(--danger);font-size:11px;margin-top:3px;display:none;}
+  .modal-actions{display:flex;gap:10px;margin-top:18px;}
+  .btn-cancel{flex:1;background:none;border:1px solid var(--line);border-radius:10px;padding:11px;font-family:'Tajawal';font-weight:700;font-size:13px;cursor:pointer;color:var(--ink);}
+  .btn-save{flex:2;background:var(--red);color:#fff;border:none;border-radius:10px;padding:11px;font-family:'Tajawal';font-weight:700;font-size:13px;cursor:pointer;}
+  .toast{
+    position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+    background:var(--ink);color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;
+    opacity:0;pointer-events:none;transition:opacity .2s ease;z-index:1000;
+  }
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<div class="demo-banner">⚠️ نسخة بروفة — البيانات هنا مؤقتة ومش بتتحفظ. لسه معملناش قاعدة بيانات حقيقية.</div>
+
+<div id="gateView" class="gate">
+  <div class="gate-icon">🔒</div>
+  <h2 class="display" style="font-family:'Tajawal';">لوحة تحكم دليلك</h2>
+  <p>الدخول للأدمن بس — الباسورد شكلي دلوقتي لحد ما نضيف حماية حقيقية</p>
+  <input type="password" id="pwInput" placeholder="اكتب الباسورد (demo123)">
+  <div class="gate-error" id="gateError">باسورد غلط، جرب تاني</div>
+  <button class="btn-primary" onclick="tryLogin()">دخول</button>
+</div>
+
+<div id="dashboardView" style="display:none;">
+  <header class="top">
+    <div class="top-inner">
+      <div class="brand">
+        <div class="brand-mark"><img src="data:image/png;base64,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" alt="Daleelak logo" style="width:100%;height:100%;object-fit:contain;"></div>
+        <div>
+          <div class="brand-title">لوحة تحكم دليلك</div>
+          <div class="brand-sub">قسم المطاعم — النزهة وقباء</div>
+        </div>
+      </div>
+      <button class="logout-btn" onclick="logout()">خروج</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="stats">
+      <div class="stat-card"><div class="stat-num" id="statCount">0</div><div class="stat-label">محل مسجل</div></div>
+      <div class="stat-card"><div class="stat-num">1</div><div class="stat-label">قسم شغال</div></div>
+      <div class="stat-card"><div class="stat-num">0 ج</div><div class="stat-label">إيراد شهري (تجريبي)</div></div>
+    </div>
+
+    <div class="toolbar">
+      <h3>الأقسام</h3>
+      <button class="btn-add" onclick="openCatForm()">+ قسم جديد</button>
+    </div>
+    <div id="catRows" style="margin-bottom:8px;"></div>
+
+    <div class="toolbar">
+      <h3>المحلات</h3>
+      <button class="btn-add" onclick="openForm()">+ إضافة محل</button>
+    </div>
+
+    <div id="shopRows"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3 id="modalTitle">إضافة محل جديد</h3>
+    <div class="hint">البيانات دي هتظهر لكل العملاء في صفحة "دليلك"</div>
+
+    <div class="field-row">
+      <div class="field-group">
+        <label>اسم المحل (عربي)</label>
+        <input id="f_name_ar" placeholder="مطعم الأصيل">
+      </div>
+      <div class="field-group">
+        <label>Shop name (English)</label>
+        <input id="f_name_en" placeholder="Al Aseel Restaurant">
+      </div>
+    </div>
+
+    <div class="field-group">
+      <label>القسم</label>
+      <select id="f_category"></select>
+    </div>
+
+    <div class="field-group">
+      <label>وصف قصير / نوع الأكل</label>
+      <input id="f_tag_ar" placeholder="مثال: أكل شعبي — كشري وفول">
+    </div>
+
+    <div class="field-group">
+      <label>العنوان</label>
+      <textarea id="f_address"></textarea>
+    </div>
+
+    <div class="field-row">
+      <div class="field-group">
+        <label>رقم التليفون</label>
+        <input id="f_phone" placeholder="01xxxxxxxxx">
+        <div class="field-error" id="err_phone">اكتب رقم تليفون صحيح</div>
+      </div>
+      <div class="field-group">
+        <label>رقم الواتساب</label>
+        <input id="f_whatsapp" placeholder="201xxxxxxxxx">
+      </div>
+    </div>
+
+    <div class="field-group">
+      <label>لينك اللوكيشن (Google Maps)</label>
+      <input id="f_map" placeholder="https://maps.google.com/...">
+    </div>
+
+    <div class="field-group">
+      <label>أيقونة اللوجو (إيموجي مؤقت لحد ما نضيف رفع صور)</label>
+      <input id="f_icon" placeholder="🍔" maxlength="2">
+    </div>
+
+    <div class="field-group">
+      <label>صور المنيو / العروض (إيموجي مؤقت لحد ما نضيف رفع صور — لحد 4 صور)</label>
+      <div class="field-row" style="grid-template-columns:repeat(4,1fr);">
+        <input id="f_menu1" placeholder="🍔" maxlength="2">
+        <input id="f_menu2" placeholder="🍟" maxlength="2">
+        <input id="f_menu3" placeholder="🥤" maxlength="2">
+        <input id="f_menu4" placeholder="—" maxlength="2">
+      </div>
+    </div>
+
+    <div class="field-group">
+      <label>باقة الاشتراك</label>
+      <select id="f_plan" oninput="updatePlanPreview()">
+        <option value="none">— لسه من غير باقة —</option>
+        <option value="trial24h">تجريبي 24 ساعة</option>
+        <option value="month1">شهر</option>
+        <option value="month3">3 شهور</option>
+        <option value="month6">6 شهور</option>
+        <option value="month9">9 شهور</option>
+        <option value="year1">12 شهر (سنة)</option>
+        <option value="lifetime">مدى الحياة</option>
+      </select>
+      <div class="hint" id="planPreview" style="margin:6px 0 0;"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeForm()">إلغاء</button>
+      <button class="btn-save" onclick="saveShop()">حفظ المحل</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="catModalOverlay">
+  <div class="modal" style="max-width:340px;">
+    <h3 id="catModalTitle">قسم جديد</h3>
+    <div class="hint">القسم هيظهر في صفحة الأدمن وصفحة العميل — أقسام غير "مطاعم" هتفضل "قريبًا" لحد ما يتحط فيها محلات</div>
+    <div class="field-group">
+      <label>أيقونة (إيموجي)</label>
+      <input id="cat_icon" placeholder="🍕" maxlength="2">
+    </div>
+    <div class="field-group">
+      <label>اسم القسم</label>
+      <input id="cat_label" placeholder="مثال: كافيهات وعصائر">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeCatForm()">إلغاء</button>
+      <button class="btn-save" onclick="saveCat()">حفظ القسم</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const PASSWORD = 'demo123';
+const COLORS = ['#D93829','#B87A22','#2E7D5B','#7A4E9E','#2467A8'];
+
+const PLAN_DAYS = {none:null, trial24h:1, month1:30, month3:90, month6:180, month9:270, year1:365, lifetime:'lifetime'};
+const PLAN_LABELS = {none:'من غير باقة', trial24h:'تجريبي 24 ساعة', month1:'شهر', month3:'3 شهور', month6:'6 شهور', month9:'9 شهور', year1:'سنة', lifetime:'مدى الحياة'};
+const CATS = [
+  {id:'food', icon:'🍔', label:'مطاعم'},
+  {id:'cafe', icon:'☕', label:'كافيهات وعصائر'},
+  {id:'bakery', icon:'🍰', label:'حلواني ومخابز'},
+  {id:'market', icon:'🛒', label:'سوبر ماركت'},
+  {id:'pharmacy', icon:'💊', label:'صيدليات'},
+  {id:'clinic', icon:'🏥', label:'عيادات ومراكز طبية'},
+  {id:'clothing', icon:'👕', label:'محلات ملابس'},
+  {id:'retail', icon:'🛍️', label:'محلات تجارية'},
+  {id:'workshops', icon:'🔧', label:'ورش (سباكة، كهرباء، نجارة)'},
+  {id:'services', icon:'🧰', label:'خدمات عامة'},
+];
+let nextCatId = 100;
+let editingCatId = null;
+
+function computeExpiry(plan){
+  const days = PLAN_DAYS[plan];
+  if(plan === 'none' || days === null) return null;
+  if(plan === 'lifetime') return 'lifetime';
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0,10);
+}
+
+function expiryLabel(s){
+  if(!s.plan || s.plan === 'none') return 'من غير باقة';
+  if(s.expiry === 'lifetime') return 'مدى الحياة ♾️';
+  if(!s.expiry) return 'من غير باقة';
+  const daysLeft = Math.ceil((new Date(s.expiry) - new Date()) / 86400000);
+  if(daysLeft < 0) return 'انتهى — ' + s.expiry;
+  if(daysLeft === 0) return 'بينتهي النهارده';
+  return 'باقي ' + daysLeft + ' يوم';
+}
+
+function expiryClass(s){
+  if(!s.plan || s.plan === 'none') return 'expiry-none';
+  if(s.expiry === 'lifetime') return 'expiry-ok';
+  const daysLeft = Math.ceil((new Date(s.expiry) - new Date()) / 86400000);
+  if(daysLeft < 0) return 'expiry-over';
+  if(daysLeft <= 7) return 'expiry-soon';
+  return 'expiry-ok';
+}
+
+let SHOPS = [
+  {id:1, icon:'🍚', color:COLORS[0], category:'food', name_ar:'كشري أبو النزهة', name_en:'Abu El Nozha Koshary', tag:'أكل شعبي — كشري وفول وطعمية', address:'شارع مصطفى النحاس، خلف مسجد النور', phone:'01001234567', whatsapp:'201001234567', map:'https://maps.google.com/?q=30.09,31.34', menu:['🍚','🥘','🍞',''], plan:'month3', expiry:computeExpiry('month3')},
+  {id:2, icon:'🍔', color:COLORS[1], category:'food', name_ar:'برجر هاوس', name_en:'Burger House', tag:'فاست فود — برجر وبطاطس', address:'ميدان قباء، جنب صيدلية الحياة', phone:'01109876543', whatsapp:'201109876543', map:'https://maps.google.com/?q=30.09,31.35', menu:['🍔','🍟','🥤',''], plan:'none', expiry:null},
+];
+let editingId = null;
+let nextId = 3;
+let formOriginalPlan = null;
+
+function tryLogin(){
+  const val = document.getElementById('pwInput').value;
+  if(val === PASSWORD){
+    document.getElementById('gateView').style.display = 'none';
+    document.getElementById('dashboardView').style.display = 'block';
+    renderCategoryOptions();
+    renderCatRows();
+    renderShops();
+  } else {
+    document.getElementById('gateError').style.display = 'block';
+  }
+}
+
+function logout(){
+  document.getElementById('dashboardView').style.display = 'none';
+  document.getElementById('gateView').style.display = 'block';
+  document.getElementById('pwInput').value = '';
+  document.getElementById('gateError').style.display = 'none';
+}
+
+function catLabel(catId){
+  const c = CATS.find(x=>x.id===catId);
+  return c ? c.icon + ' ' + c.label : '—';
+}
+
+function renderCategoryOptions(){
+  const sel = document.getElementById('f_category');
+  const current = sel.value;
+  sel.innerHTML = CATS.map(c => `<option value="${c.id}">${c.icon} ${c.label}</option>`).join('');
+  if(CATS.some(c=>c.id===current)) sel.value = current;
+}
+
+function renderCatRows(){
+  const container = document.getElementById('catRows');
+  if(CATS.length === 0){
+    container.innerHTML = '<div class="empty">مفيش أقسام. دوس "+ قسم جديد".</div>';
+    return;
+  }
+  container.innerHTML = CATS.map(c => `
+    <div class="shop-row">
+      <div class="row-logo" style="background:var(--cream);font-size:18px;">${c.icon}</div>
+      <div class="row-info">
+        <div class="row-name">${c.label}</div>
+        <div class="row-meta">${c.id === 'food' ? 'شغال دلوقتي في صفحة العميل' : 'قريبًا في صفحة العميل'}</div>
+      </div>
+      <div class="row-actions">
+        <button class="icon-btn" onclick="openCatForm('${c.id}')" aria-label="تعديل">✏️</button>
+        <button class="icon-btn danger" onclick="deleteCat('${c.id}')" aria-label="حذف">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openCatForm(id){
+  editingCatId = id || null;
+  const c = id ? CATS.find(x=>x.id===id) : null;
+  document.getElementById('catModalTitle').textContent = id ? 'تعديل القسم' : 'قسم جديد';
+  document.getElementById('cat_icon').value = c ? c.icon : '';
+  document.getElementById('cat_label').value = c ? c.label : '';
+  document.getElementById('catModalOverlay').classList.add('active');
+}
+
+function closeCatForm(){
+  document.getElementById('catModalOverlay').classList.remove('active');
+}
+
+function saveCat(){
+  const label = document.getElementById('cat_label').value.trim();
+  const icon = document.getElementById('cat_icon').value.trim() || '🏷️';
+  if(!label){
+    showToast('اكتب اسم القسم الأول');
+    return;
+  }
+  if(editingCatId){
+    const c = CATS.find(x=>x.id===editingCatId);
+    c.icon = icon; c.label = label;
+    showToast('اتحفظ تعديل القسم');
+  } else {
+    CATS.push({id:'cat'+(nextCatId++), icon, label});
+    showToast('اتضاف القسم');
+  }
+  closeCatForm();
+  renderCatRows();
+  renderCategoryOptions();
+  renderShops();
+}
+
+function deleteCat(id){
+  if(SHOPS.some(s=>s.category===id)){
+    showToast('فيه محلات مسجلة في القسم ده — انقلها لقسم تاني الأول');
+    return;
+  }
+  CATS.splice(CATS.findIndex(x=>x.id===id), 1);
+  renderCatRows();
+  renderCategoryOptions();
+  showToast('اتمسح القسم');
+}
+
+function renderShops(){
+  document.getElementById('statCount').textContent = SHOPS.length;
+  const container = document.getElementById('shopRows');
+  if(SHOPS.length === 0){
+    container.innerHTML = '<div class="empty">مفيش محلات لسه. دوس "+ إضافة محل" عشان تبدأ.</div>';
+    return;
+  }
+  container.innerHTML = SHOPS.map(s => `
+    <div class="shop-row">
+      <div class="row-logo" style="background:${s.color}">${s.icon}</div>
+      <div class="row-info">
+        <div class="row-name">${s.name_ar}</div>
+        <div class="row-meta">${catLabel(s.category)} · ${s.tag}${s.menu && s.menu.length ? ' · ' + s.menu.length + ' صورة منيو' : ''}</div>
+      </div>
+      <div class="row-actions">
+        <span class="expiry-badge ${expiryClass(s)}">${expiryLabel(s)}</span>
+        <button class="icon-btn" onclick="openForm(${s.id})" aria-label="تعديل">✏️</button>
+        <button class="icon-btn danger" onclick="deleteShop(${s.id})" aria-label="حذف">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openForm(id){
+  editingId = id || null;
+  document.getElementById('modalTitle').textContent = id ? 'تعديل بيانات المحل' : 'إضافة محل جديد';
+  const s = id ? SHOPS.find(x=>x.id===id) : null;
+  document.getElementById('f_name_ar').value = s ? s.name_ar : '';
+  document.getElementById('f_name_en').value = s ? s.name_en : '';
+  document.getElementById('f_category').value = s ? (s.category || 'food') : 'food';
+  document.getElementById('f_tag_ar').value = s ? s.tag : '';
+  document.getElementById('f_address').value = s ? s.address : '';
+  document.getElementById('f_phone').value = s ? s.phone : '';
+  document.getElementById('f_whatsapp').value = s ? s.whatsapp : '';
+  document.getElementById('f_map').value = s ? s.map : '';
+  document.getElementById('f_icon').value = s ? s.icon : '';
+  const menu = s && s.menu ? s.menu : ['','','',''];
+  document.getElementById('f_menu1').value = menu[0] || '';
+  document.getElementById('f_menu2').value = menu[1] || '';
+  document.getElementById('f_menu3').value = menu[2] || '';
+  document.getElementById('f_menu4').value = menu[3] || '';
+  document.getElementById('f_plan').value = s ? (s.plan || 'none') : 'none';
+  formOriginalPlan = s ? (s.plan || 'none') : 'none';
+  updatePlanPreview();
+  document.getElementById('err_phone').style.display = 'none';
+  document.getElementById('modalOverlay').classList.add('active');
+}
+
+function closeForm(){
+  document.getElementById('modalOverlay').classList.remove('active');
+}
+
+function updatePlanPreview(){
+  const plan = document.getElementById('f_plan').value;
+  const preview = document.getElementById('planPreview');
+  if(plan === 'none'){ preview.textContent = ''; return; }
+  if(plan === 'lifetime'){ preview.textContent = 'الاشتراك مفتوح، من غير تاريخ انتهاء'; return; }
+  const expiry = computeExpiry(plan);
+  preview.textContent = 'هينتهي في: ' + expiry;
+}
+
+function saveShop(){
+  const name_ar = document.getElementById('f_name_ar').value.trim();
+  const phone = document.getElementById('f_phone').value.trim();
+  const phoneErr = document.getElementById('err_phone');
+
+  if(!name_ar){
+    document.getElementById('f_name_ar').focus();
+    showToast('اكتب اسم المحل الأول');
+    return;
+  }
+  if(!phone || phone.length < 8){
+    phoneErr.style.display = 'block';
+    return;
+  }
+  phoneErr.style.display = 'none';
+
+  const data = {
+    name_ar,
+    name_en: document.getElementById('f_name_en').value.trim() || name_ar,
+    category: document.getElementById('f_category').value,
+    tag: document.getElementById('f_tag_ar').value.trim(),
+    address: document.getElementById('f_address').value.trim(),
+    phone,
+    whatsapp: document.getElementById('f_whatsapp').value.trim() || phone,
+    map: document.getElementById('f_map').value.trim(),
+    icon: document.getElementById('f_icon').value.trim() || '🏪',
+    menu: [
+      document.getElementById('f_menu1').value.trim(),
+      document.getElementById('f_menu2').value.trim(),
+      document.getElementById('f_menu3').value.trim(),
+      document.getElementById('f_menu4').value.trim(),
+    ].filter(Boolean),
+    plan: document.getElementById('f_plan').value,
+  };
+
+  const planChanged = data.plan !== formOriginalPlan;
+  if(!editingId || planChanged){
+    data.expiry = computeExpiry(data.plan);
+  } else {
+    data.expiry = SHOPS.find(x=>x.id===editingId).expiry;
+  }
+
+  if(editingId){
+    const idx = SHOPS.findIndex(x=>x.id===editingId);
+    SHOPS[idx] = {...SHOPS[idx], ...data};
+    showToast('اتحفظ التعديل');
+  } else {
+    SHOPS.push({id:nextId++, color:COLORS[SHOPS.length % COLORS.length], ...data});
+    showToast('اتضاف المحل');
+  }
+  closeForm();
+  renderShops();
+}
+
+function deleteShop(id){
+  SHOPS = SHOPS.filter(x=>x.id!==id);
+  renderShops();
+  showToast('اتمسح المحل');
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 1800);
+}
+</script>
+
+</body>
+</html>
