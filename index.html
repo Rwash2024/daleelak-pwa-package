@@ -354,7 +354,6 @@ async function loadData(){
   if(catsErr) console.error(catsErr);
   if(shopsErr) console.error(shopsErr);
 
-  CATS = (cats||[]).map(c => ({id:c.id, icon:c.icon, imageUrl:c.image_url, label:{ar:c.label,en:c.label}, active:c.active}));
   SHOPS = (shops||[]).map(s => ({
     id:s.id, catId:s.category_id, icon:s.icon, color:s.color, logoUrl:s.logo_url,
     name:{ar:s.name_ar, en:s.name_en || s.name_ar},
@@ -362,6 +361,10 @@ async function loadData(){
     address:{ar:s.address || '', en:s.address || ''},
     phone:s.phone, whatsapp:s.whatsapp || s.phone,
     mapUrl:s.map_url || '#', menu:(s.menu_images && s.menu_images.length) ? s.menu_images : ['🏪']
+  }));
+  CATS = (cats||[]).map(c => ({
+    id:c.id, icon:c.icon, imageUrl:c.image_url, label:{ar:c.label,en:c.label},
+    active: SHOPS.some(s=>s.catId===c.id)
   }));
 }
 

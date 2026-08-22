@@ -473,7 +473,7 @@ function renderCatRows(){
       <div class="row-logo" style="background:var(--cream);font-size:18px;overflow:hidden;">${isImageUrl(c.image_url) ? `<img src="${c.image_url}" style="width:100%;height:100%;object-fit:cover;">` : c.icon}</div>
       <div class="row-info">
         <div class="row-name">${c.label}</div>
-        <div class="row-meta">${c.id === 'food' ? 'شغال دلوقتي في صفحة العميل' : 'قريبًا في صفحة العميل'}</div>
+        <div class="row-meta">${SHOPS.some(s=>s.category===c.id) ? 'شغال دلوقتي في صفحة العميل' : 'قريبًا في صفحة العميل — لسه مفيهوش محلات'}</div>
       </div>
       <div class="row-actions">
         <button class="icon-btn" onclick="openCatForm('${c.id}')" aria-label="تعديل">✏️</button>
