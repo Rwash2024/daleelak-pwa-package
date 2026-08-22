@@ -250,7 +250,10 @@
     <div class="field-group">
       <label>لوجو المحل (صورة) — أو إيموجي احتياطي لو مفيش صورة</label>
       <div style="display:flex;align-items:center;gap:10px;">
-        <div id="logoPreview" style="width:52px;height:52px;border-radius:12px;background:var(--cream);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden;flex-shrink:0;">🏪</div>
+        <div style="position:relative;flex-shrink:0;">
+          <div id="logoPreview" style="width:52px;height:52px;border-radius:12px;background:var(--cream);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden;">🏪</div>
+          <button type="button" id="logoRemoveBtn" onclick="clearImage('logo')" style="display:none;position:absolute;top:-6px;left:-6px;width:20px;height:20px;border-radius:50%;background:var(--danger);color:#fff;border:none;font-size:12px;line-height:1;cursor:pointer;align-items:center;justify-content:center;">×</button>
+        </div>
         <input type="file" id="f_logo_file" accept="image/*" onchange="uploadImage(this,'logo')" style="flex:1;">
       </div>
       <input id="f_icon" placeholder="🍔ايموجي احتياطي" maxlength="2" style="margin-top:8px;">
@@ -260,19 +263,31 @@
       <label>صور المنيو / العروض (لحد 4 صور)</label>
       <div class="field-row" style="grid-template-columns:repeat(4,1fr);">
         <div>
-          <div id="menuPreview1" style="width:100%;aspect-ratio:1;border-radius:9px;background:var(--cream);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden;margin-bottom:4px;">—</div>
+          <div style="position:relative;">
+            <div id="menuPreview1" style="width:100%;aspect-ratio:1;border-radius:9px;background:var(--cream);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden;margin-bottom:4px;">—</div>
+            <button type="button" id="menuRemoveBtn1" onclick="clearImage('menu1')" style="display:none;position:absolute;top:-6px;left:-6px;width:20px;height:20px;border-radius:50%;background:var(--danger);color:#fff;border:none;font-size:12px;line-height:1;cursor:pointer;align-items:center;justify-content:center;">×</button>
+          </div>
           <input type="file" id="f_menu_file1" accept="image/*" onchange="uploadImage(this,'menu1')" style="font-size:11px;">
         </div>
         <div>
-          <div id="menuPreview2" style="width:100%;aspect-ratio:1;border-radius:9px;background:var(--cream);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden;margin-bottom:4px;">—</div>
+          <div style="position:relative;">
+            <div id="menuPreview2" style="width:100%;aspect-ratio:1;border-radius:9px;background:var(--cream);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden;margin-bottom:4px;">—</div>
+            <button type="button" id="menuRemoveBtn2" onclick="clearImage('menu2')" style="display:none;position:absolute;top:-6px;left:-6px;width:20px;height:20px;border-radius:50%;background:var(--danger);color:#fff;border:none;font-size:12px;line-height:1;cursor:pointer;align-items:center;justify-content:center;">×</button>
+          </div>
           <input type="file" id="f_menu_file2" accept="image/*" onchange="uploadImage(this,'menu2')" style="font-size:11px;">
         </div>
         <div>
-          <div id="menuPreview3" style="width:100%;aspect-ratio:1;border-radius:9px;background:var(--cream);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden;margin-bottom:4px;">—</div>
+          <div style="position:relative;">
+            <div id="menuPreview3" style="width:100%;aspect-ratio:1;border-radius:9px;background:var(--cream);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden;margin-bottom:4px;">—</div>
+            <button type="button" id="menuRemoveBtn3" onclick="clearImage('menu3')" style="display:none;position:absolute;top:-6px;left:-6px;width:20px;height:20px;border-radius:50%;background:var(--danger);color:#fff;border:none;font-size:12px;line-height:1;cursor:pointer;align-items:center;justify-content:center;">×</button>
+          </div>
           <input type="file" id="f_menu_file3" accept="image/*" onchange="uploadImage(this,'menu3')" style="font-size:11px;">
         </div>
         <div>
-          <div id="menuPreview4" style="width:100%;aspect-ratio:1;border-radius:9px;background:var(--cream);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden;margin-bottom:4px;">—</div>
+          <div style="position:relative;">
+            <div id="menuPreview4" style="width:100%;aspect-ratio:1;border-radius:9px;background:var(--cream);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden;margin-bottom:4px;">—</div>
+            <button type="button" id="menuRemoveBtn4" onclick="clearImage('menu4')" style="display:none;position:absolute;top:-6px;left:-6px;width:20px;height:20px;border-radius:50%;background:var(--danger);color:#fff;border:none;font-size:12px;line-height:1;cursor:pointer;align-items:center;justify-content:center;">×</button>
+          </div>
           <input type="file" id="f_menu_file4" accept="image/*" onchange="uploadImage(this,'menu4')" style="font-size:11px;">
         </div>
       </div>
@@ -321,7 +336,10 @@
     <div class="field-group">
       <label>صورة الأيقونة — أو إيموجي احتياطي لو مفيش صورة</label>
       <div style="display:flex;align-items:center;gap:10px;">
-        <div id="catImagePreview" style="width:44px;height:44px;border-radius:10px;background:var(--cream);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:20px;overflow:hidden;flex-shrink:0;">🏷️</div>
+        <div style="position:relative;flex-shrink:0;">
+          <div id="catImagePreview" style="width:44px;height:44px;border-radius:10px;background:var(--cream);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:20px;overflow:hidden;">🏷️</div>
+          <button type="button" id="catImageRemoveBtn" onclick="clearImage('cat')" style="display:none;position:absolute;top:-6px;left:-6px;width:20px;height:20px;border-radius:50%;background:var(--danger);color:#fff;border:none;font-size:12px;line-height:1;cursor:pointer;align-items:center;justify-content:center;">×</button>
+        </div>
         <input type="file" id="cat_image_file" accept="image/*" onchange="uploadCatImage(this)" style="flex:1;">
       </div>
       <input id="cat_icon" placeholder="🍕 إيموجي احتياطي" maxlength="2" style="margin-top:8px;">
@@ -493,7 +511,7 @@ async function uploadCatImage(input){
   if(error){ showToast('حصل خطأ في رفع الصورة'); console.error(error); return; }
   const {data} = db.storage.from('shop-images').getPublicUrl(path);
   pendingCatImageUrl = data.publicUrl;
-  renderPreview(document.getElementById('catImagePreview'), pendingCatImageUrl, '🏷️');
+  renderPreview(document.getElementById('catImagePreview'), pendingCatImageUrl, '🏷️', 'contain', 'catImageRemoveBtn');
 }
 
 function openCatForm(id){
@@ -504,7 +522,7 @@ function openCatForm(id){
   document.getElementById('cat_label').value = c ? c.label : '';
   document.getElementById('cat_image_file').value = '';
   pendingCatImageUrl = c ? (c.image_url || null) : null;
-  renderPreview(document.getElementById('catImagePreview'), pendingCatImageUrl, c ? (c.icon || '🏷️') : '🏷️');
+  renderPreview(document.getElementById('catImagePreview'), pendingCatImageUrl, c ? (c.icon || '🏷️') : '🏷️', 'contain', 'catImageRemoveBtn');
   document.getElementById('catModalOverlay').classList.add('active');
 }
 
@@ -591,11 +609,15 @@ function renderShops(){
 
 function isImageUrl(v){ return !!v && /^https?:\/\//.test(v); }
 
-function renderPreview(el, value, fallback, fit){
+function renderPreview(el, value, fallback, fit, removeBtnId){
   if(isImageUrl(value)){
     el.innerHTML = `<img src="${value}" style="width:100%;height:100%;object-fit:${fit || 'contain'};">`;
   } else {
     el.textContent = value || fallback;
+  }
+  if(removeBtnId){
+    const btn = document.getElementById(removeBtnId);
+    if(btn) btn.style.display = isImageUrl(value) ? 'flex' : 'none';
   }
 }
 
@@ -615,11 +637,28 @@ async function uploadImage(input, slot){
   hint.textContent = '';
   if(slot === 'logo'){
     pendingLogoUrl = url;
-    renderPreview(document.getElementById('logoPreview'), url, '🏪');
+    renderPreview(document.getElementById('logoPreview'), url, '🏪', 'contain', 'logoRemoveBtn');
   } else {
     const idx = parseInt(slot.replace('menu',''), 10) - 1;
     pendingMenuUrls[idx] = url;
-    renderPreview(document.getElementById('menuPreview'+(idx+1)), url, '—', 'cover');
+    renderPreview(document.getElementById('menuPreview'+(idx+1)), url, '—', 'cover', 'menuRemoveBtn'+(idx+1));
+  }
+}
+
+function clearImage(slot){
+  if(slot === 'logo'){
+    pendingLogoUrl = null;
+    document.getElementById('f_logo_file').value = '';
+    renderPreview(document.getElementById('logoPreview'), null, document.getElementById('f_icon').value.trim() || '🏪', 'contain', 'logoRemoveBtn');
+  } else if(slot === 'cat'){
+    pendingCatImageUrl = null;
+    document.getElementById('cat_image_file').value = '';
+    renderPreview(document.getElementById('catImagePreview'), null, document.getElementById('cat_icon').value.trim() || '🏷️', 'contain', 'catImageRemoveBtn');
+  } else {
+    const idx = parseInt(slot.replace('menu',''), 10) - 1;
+    pendingMenuUrls[idx] = null;
+    document.getElementById('f_menu_file'+(idx+1)).value = '';
+    renderPreview(document.getElementById('menuPreview'+(idx+1)), null, '—', 'cover', 'menuRemoveBtn'+(idx+1));
   }
 }
 
@@ -638,13 +677,13 @@ function openForm(id){
   document.getElementById('f_icon').value = s ? s.icon : '';
 
   pendingLogoUrl = s ? (s.logo_url || null) : null;
-  renderPreview(document.getElementById('logoPreview'), pendingLogoUrl, s ? (s.icon || '🏪') : '🏪');
+  renderPreview(document.getElementById('logoPreview'), pendingLogoUrl, s ? (s.icon || '🏪') : '🏪', 'contain', 'logoRemoveBtn');
 
   const menu = s && s.menu ? s.menu : ['','','',''];
   pendingMenuUrls = [menu[0]||null, menu[1]||null, menu[2]||null, menu[3]||null];
   for(let i=0;i<4;i++){
     document.getElementById('f_menu_file'+(i+1)).value = '';
-    renderPreview(document.getElementById('menuPreview'+(i+1)), pendingMenuUrls[i], '—', 'cover');
+    renderPreview(document.getElementById('menuPreview'+(i+1)), pendingMenuUrls[i], '—', 'cover', 'menuRemoveBtn'+(i+1));
   }
   document.getElementById('uploadHint').textContent = '';
 
