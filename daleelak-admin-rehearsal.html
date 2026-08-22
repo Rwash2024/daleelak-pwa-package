@@ -470,7 +470,7 @@ function renderCatRows(){
   }
   container.innerHTML = CATS.map(c => `
     <div class="shop-row">
-      <div class="row-logo" style="background:var(--cream);font-size:18px;overflow:hidden;">${isImageUrl(c.image_url) ? `<img src="${c.image_url}" style="width:100%;height:100%;object-fit:cover;">` : c.icon}</div>
+      <div class="row-logo" style="background:var(--cream);font-size:18px;overflow:hidden;">${isImageUrl(c.image_url) ? `<img src="${c.image_url}" style="width:100%;height:100%;object-fit:contain;">` : c.icon}</div>
       <div class="row-info">
         <div class="row-name">${c.label}</div>
         <div class="row-meta">${SHOPS.some(s=>s.category===c.id) ? 'شغال دلوقتي في صفحة العميل' : 'قريبًا في صفحة العميل — لسه مفيهوش محلات'}</div>
@@ -573,7 +573,7 @@ function renderShops(){
       : '';
     return `
     <div class="shop-row">
-      <div class="row-logo" style="background:${s.color};overflow:hidden;">${isImageUrl(s.logo_url) ? `<img src="${s.logo_url}" style="width:100%;height:100%;object-fit:cover;">` : s.icon}</div>
+      <div class="row-logo" style="background:${s.color};overflow:hidden;">${isImageUrl(s.logo_url) ? `<img src="${s.logo_url}" style="width:100%;height:100%;object-fit:contain;">` : s.icon}</div>
       <div class="row-info">
         <div class="row-name">${s.name_ar}</div>
         <div class="row-meta">${catLabel(s.category)} · ${s.tag}${s.menu && s.menu.length ? ' · ' + s.menu.length + ' صورة منيو' : ''}</div>
@@ -591,9 +591,9 @@ function renderShops(){
 
 function isImageUrl(v){ return !!v && /^https?:\/\//.test(v); }
 
-function renderPreview(el, value, fallback){
+function renderPreview(el, value, fallback, fit){
   if(isImageUrl(value)){
-    el.innerHTML = `<img src="${value}" style="width:100%;height:100%;object-fit:cover;">`;
+    el.innerHTML = `<img src="${value}" style="width:100%;height:100%;object-fit:${fit || 'contain'};">`;
   } else {
     el.textContent = value || fallback;
   }
@@ -619,7 +619,7 @@ async function uploadImage(input, slot){
   } else {
     const idx = parseInt(slot.replace('menu',''), 10) - 1;
     pendingMenuUrls[idx] = url;
-    renderPreview(document.getElementById('menuPreview'+(idx+1)), url, '—');
+    renderPreview(document.getElementById('menuPreview'+(idx+1)), url, '—', 'cover');
   }
 }
 
@@ -644,7 +644,7 @@ function openForm(id){
   pendingMenuUrls = [menu[0]||null, menu[1]||null, menu[2]||null, menu[3]||null];
   for(let i=0;i<4;i++){
     document.getElementById('f_menu_file'+(i+1)).value = '';
-    renderPreview(document.getElementById('menuPreview'+(i+1)), pendingMenuUrls[i], '—');
+    renderPreview(document.getElementById('menuPreview'+(i+1)), pendingMenuUrls[i], '—', 'cover');
   }
   document.getElementById('uploadHint').textContent = '';
 

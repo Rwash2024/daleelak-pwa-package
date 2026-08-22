@@ -124,7 +124,7 @@
   .cat-card.disabled{opacity:.55;cursor:default;}
   .cat-card.disabled:hover{transform:none;border-color:var(--line);}
   .cat-icon{font-size:26px;margin-bottom:8px;}
-  .cat-icon img{width:36px;height:36px;object-fit:cover;border-radius:10px;}
+  .cat-icon img{width:36px;height:36px;object-fit:contain;border-radius:10px;}
   .cat-label{font-size:13px;font-weight:700;}
   .cat-count{font-size:10px;color:var(--muted);margin-top:2px;}
   .soon-badge{
@@ -369,7 +369,7 @@ async function loadData(){
 }
 
 function isImageUrl(v){ return !!v && /^https?:\/\//.test(v); }
-function logoInner(s){ return isImageUrl(s.logoUrl) ? `<img src="${s.logoUrl}" style="width:100%;height:100%;object-fit:cover;">` : s.icon; }
+function logoInner(s){ return isImageUrl(s.logoUrl) ? `<img src="${s.logoUrl}" style="width:100%;height:100%;object-fit:contain;">` : s.icon; }
 
 function t(key){ return I18N[LANG][key]; }
 
