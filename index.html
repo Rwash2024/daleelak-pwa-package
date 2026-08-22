@@ -13,6 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lalezar&family=Tajawal:wght@400;500;700;800&family=Fredoka:wght@500;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
   :root{
     --cream:#FBF1E4;
@@ -337,53 +338,31 @@ const I18N = {
   }
 };
 
-const CATS = [
-  {id:'food', icon:'🍔', label:{ar:'مطاعم',en:'Restaurants'}, active:true},
-  {id:'cafe', icon:'☕', label:{ar:'كافيهات وعصائر',en:'Cafes and juice'}, active:false},
-  {id:'bakery', icon:'🍰', label:{ar:'حلواني ومخابز',en:'Bakeries and sweets'}, active:false},
-  {id:'market', icon:'🛒', label:{ar:'سوبر ماركت',en:'Supermarkets'}, active:false},
-  {id:'pharmacy', icon:'💊', label:{ar:'صيدليات',en:'Pharmacies'}, active:false},
-  {id:'clinic', icon:'🏥', label:{ar:'عيادات ومراكز طبية',en:'Clinics and medical centers'}, active:false},
-  {id:'clothing', icon:'👕', label:{ar:'محلات ملابس',en:'Clothing shops'}, active:false},
-  {id:'retail', icon:'🛍️', label:{ar:'محلات تجارية',en:'Retail shops'}, active:false},
-  {id:'workshops', icon:'🔧', label:{ar:'ورش (سباكة، كهرباء، نجارة)',en:'Workshops (plumbing, electric, carpentry)'}, active:false},
-  {id:'services', icon:'🧹', label:{ar:'خدمات عامة',en:'General services'}, active:false},
-];
+const SUPABASE_URL = 'https://nhtqdfnmdsrhbplfkdey.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_eFAzBTqbatLmZrUdkVWg9g_zk8bMcFD';
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const SHOPS = [
-  {
-    id:1, icon:'🍚', color:'var(--red)',
-    name:{ar:'كشري أبو النزهة',en:'Abu El Nozha Koshary'},
-    tag:{ar:'أكل شعبي — كشري وفول وطعمية',en:'Local eats — koshary, foul and taameya'},
-    address:{ar:'شارع مصطفى النحاس، خلف مسجد النور',en:'Mostafa El Nahas St., behind Al Nour Mosque'},
-    phone:'01001234567', whatsapp:'201001234567',
-    mapUrl:'https://maps.google.com/?q=30.09,31.34', menu:['🍚','🥘','🍞']
-  },
-  {
-    id:2, icon:'🍔', color:'var(--gold-dark)',
-    name:{ar:'برجر هاوس',en:'Burger House'},
-    tag:{ar:'فاست فود — برجر وبطاطس',en:'Fast food — burgers and fries'},
-    address:{ar:'ميدان قباء، جنب صيدلية الحياة',en:'Qubaa Square, next to Al Hayah Pharmacy'},
-    phone:'01109876543', whatsapp:'201109876543',
-    mapUrl:'https://maps.google.com/?q=30.09,31.35', menu:['🍔','🍟','🥤']
-  },
-  {
-    id:3, icon:'🍗', color:'#2E7D5B',
-    name:{ar:'فراخ الملك',en:'King Chicken'},
-    tag:{ar:'مشويات — فراخ ومشويات وأرز',en:'Grill — chicken, grills and rice'},
-    address:{ar:'شارع الطيران، بجوار محطة البنزين',en:'El Tayaran St., next to the gas station'},
-    phone:'01234567890', whatsapp:'201234567890',
-    mapUrl:'https://maps.google.com/?q=30.10,31.34', menu:['🍗','🍚','🥗']
-  },
-  {
-    id:4, icon:'🍕', color:'#7A4E9E',
-    name:{ar:'بيتزا الحارة',en:'Pizza El Hara'},
-    tag:{ar:'فاست فود — بيتزا ومكرونة',en:'Fast food — pizza and pasta'},
-    address:{ar:'شارع النزهة الرئيسي، عمارة 14',en:'Nozha Main St., building 14'},
-    phone:'01555666777', whatsapp:'201555666777',
-    mapUrl:'https://maps.google.com/?q=30.095,31.345', menu:['🍕','🍝','🧄']
-  },
-];
+let CATS = [];
+let SHOPS = [];
+
+async function loadData(){
+  const [{data: cats, error: catsErr}, {data: shops, error: shopsErr}] = await Promise.all([
+    db.from('categories').select('*').order('sort_order'),
+    db.from('shops').select('*').order('created_at')
+  ]);
+  if(catsErr) console.error(catsErr);
+  if(shopsErr) console.error(shopsErr);
+
+  CATS = (cats||[]).map(c => ({id:c.id, icon:c.icon, label:{ar:c.label,en:c.label}, active:c.active}));
+  SHOPS = (shops||[]).map(s => ({
+    id:s.id, catId:s.category_id, icon:s.icon, color:s.color,
+    name:{ar:s.name_ar, en:s.name_en || s.name_ar},
+    tag:{ar:s.tag || '', en:s.tag || ''},
+    address:{ar:s.address || '', en:s.address || ''},
+    phone:s.phone, whatsapp:s.whatsapp || s.phone,
+    mapUrl:s.map_url || '#', menu:(s.menu_images && s.menu_images.length) ? s.menu_images : ['🏪']
+  }));
+}
 
 function t(key){ return I18N[LANG][key]; }
 
@@ -407,14 +386,14 @@ function renderCats(){
       ${!c.active?`<div class="soon-badge">${t('comingSoon')}</div>`:''}
       <div class="cat-icon">${c.icon}</div>
       <div class="cat-label">${c.label[LANG]}</div>
-      <div class="cat-count">${c.active ? SHOPS.length+' '+t('shopsCount') : '—'}</div>
+      <div class="cat-count">${c.active ? SHOPS.filter(s=>s.catId===c.id).length+' '+t('shopsCount') : '—'}</div>
     </div>
   `).join('');
 }
 
 function shopCardHTML(s){
   return `
-    <div class="shop-card" onclick="openShop(${s.id})">
+    <div class="shop-card" onclick="openShop('${s.id}')">
       <div class="shop-logo" style="background:${s.color}">${s.icon}</div>
       <div class="shop-info">
         <div class="shop-name">${s.name[LANG]}</div>
@@ -430,10 +409,12 @@ function renderFeatured(){
   document.getElementById('featuredList').innerHTML = SHOPS.slice(0,3).map(shopCardHTML).join('');
 }
 
+let currentCatId = 'food';
 function renderShopList(){
-  const cat = CATS.find(c=>c.id==='food');
-  document.getElementById('listTitle').textContent = cat.label[LANG];
-  document.getElementById('shopList').innerHTML = SHOPS.map(shopCardHTML).join('');
+  const cat = CATS.find(c=>c.id===currentCatId);
+  document.getElementById('listTitle').textContent = cat ? cat.label[LANG] : '';
+  const shops = SHOPS.filter(s=>s.catId===currentCatId);
+  document.getElementById('shopList').innerHTML = shops.map(shopCardHTML).join('');
 }
 
 function showHome(){
@@ -444,6 +425,7 @@ function showHome(){
 
 function openCategory(catId){
   currentView = 'list';
+  currentCatId = catId;
   renderShopList();
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-list').classList.add('active','fade-in');
@@ -452,7 +434,7 @@ function openCategory(catId){
 function renderShopDetail(id){
   const s = SHOPS.find(x=>x.id===id);
   document.getElementById('detailContent').innerHTML = `
-    <button class="back-btn" style="margin:8px 0 -30px;" onclick="openCategory('food')">${t('back')}</button>
+    <button class="back-btn" style="margin:8px 0 -30px;" onclick="openCategory('${s.catId}')">${t('back')}</button>
     <div style="height:60px;background:${s.color};border-radius:18px 18px 0 0;margin-top:8px;"></div>
     <div class="detail-hero">
       <div class="detail-body">
@@ -530,7 +512,7 @@ function closeLightbox(e){
   document.getElementById('lightbox').classList.remove('active');
 }
 
-renderAll();
+loadData().then(renderAll);
 
 const introEl = document.getElementById('intro');
 const headerLogo = document.querySelector('#brandMark img');

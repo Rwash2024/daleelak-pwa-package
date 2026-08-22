@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lalezar&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
   :root{
     --cream:#FBF1E4; --paper:#FFFFFF; --red:#D93829; --red-dark:#A82B1F;
@@ -120,14 +121,13 @@
 </head>
 <body>
 
-<div class="demo-banner">⚠️ نسخة بروفة — البيانات هنا مؤقتة ومش بتتحفظ. لسه معملناش قاعدة بيانات حقيقية.</div>
-
 <div id="gateView" class="gate">
   <div class="gate-icon">🔒</div>
   <h2 class="display" style="font-family:'Tajawal';">لوحة تحكم دليلك</h2>
-  <p>الدخول للأدمن بس — الباسورد شكلي دلوقتي لحد ما نضيف حماية حقيقية</p>
-  <input type="password" id="pwInput" placeholder="اكتب الباسورد (demo123)">
-  <div class="gate-error" id="gateError">باسورد غلط، جرب تاني</div>
+  <p>الدخول للأدمن بس</p>
+  <input type="email" id="emailInput" placeholder="الإيميل">
+  <input type="password" id="pwInput" placeholder="الباسورد">
+  <div class="gate-error" id="gateError">بيانات دخول غلط، جرب تاني</div>
   <button class="btn-primary" onclick="tryLogin()">دخول</button>
 </div>
 
@@ -274,25 +274,20 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const PASSWORD = 'demo123';
+const SUPABASE_URL = 'https://nhtqdfnmdsrhbplfkdey.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_eFAzBTqbatLmZrUdkVWg9g_zk8bMcFD';
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 const COLORS = ['#D93829','#B87A22','#2E7D5B','#7A4E9E','#2467A8'];
 
 const PLAN_DAYS = {none:null, trial24h:1, month1:30, month3:90, month6:180, month9:270, year1:365, lifetime:'lifetime'};
 const PLAN_LABELS = {none:'من غير باقة', trial24h:'تجريبي 24 ساعة', month1:'شهر', month3:'3 شهور', month6:'6 شهور', month9:'9 شهور', year1:'سنة', lifetime:'مدى الحياة'};
-const CATS = [
-  {id:'food', icon:'🍔', label:'مطاعم'},
-  {id:'cafe', icon:'☕', label:'كافيهات وعصائر'},
-  {id:'bakery', icon:'🍰', label:'حلواني ومخابز'},
-  {id:'market', icon:'🛒', label:'سوبر ماركت'},
-  {id:'pharmacy', icon:'💊', label:'صيدليات'},
-  {id:'clinic', icon:'🏥', label:'عيادات ومراكز طبية'},
-  {id:'clothing', icon:'👕', label:'محلات ملابس'},
-  {id:'retail', icon:'🛍️', label:'محلات تجارية'},
-  {id:'workshops', icon:'🔧', label:'ورش (سباكة، كهرباء، نجارة)'},
-  {id:'services', icon:'🧰', label:'خدمات عامة'},
-];
-let nextCatId = 100;
+let CATS = [];
 let editingCatId = null;
+
+function slugify(label){
+  return 'cat_' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+}
 
 function computeExpiry(plan){
   const days = PLAN_DAYS[plan];
@@ -322,28 +317,51 @@ function expiryClass(s){
   return 'expiry-ok';
 }
 
-let SHOPS = [
-  {id:1, icon:'🍚', color:COLORS[0], category:'food', name_ar:'كشري أبو النزهة', name_en:'Abu El Nozha Koshary', tag:'أكل شعبي — كشري وفول وطعمية', address:'شارع مصطفى النحاس، خلف مسجد النور', phone:'01001234567', whatsapp:'201001234567', map:'https://maps.google.com/?q=30.09,31.34', menu:['🍚','🥘','🍞',''], plan:'month3', expiry:computeExpiry('month3')},
-  {id:2, icon:'🍔', color:COLORS[1], category:'food', name_ar:'برجر هاوس', name_en:'Burger House', tag:'فاست فود — برجر وبطاطس', address:'ميدان قباء، جنب صيدلية الحياة', phone:'01109876543', whatsapp:'201109876543', map:'https://maps.google.com/?q=30.09,31.35', menu:['🍔','🍟','🥤',''], plan:'none', expiry:null},
-];
+let SHOPS = [];
 let editingId = null;
-let nextId = 3;
 let formOriginalPlan = null;
 
-function tryLogin(){
-  const val = document.getElementById('pwInput').value;
-  if(val === PASSWORD){
-    document.getElementById('gateView').style.display = 'none';
-    document.getElementById('dashboardView').style.display = 'block';
-    renderCategoryOptions();
-    renderCatRows();
-    renderShops();
-  } else {
-    document.getElementById('gateError').style.display = 'block';
-  }
+async function loadCats(){
+  const {data, error} = await db.from('categories').select('*').order('sort_order');
+  if(error){ console.error(error); return; }
+  CATS = data.map(c => ({id:c.id, icon:c.icon, label:c.label, active:c.active, sort_order:c.sort_order}));
 }
 
-function logout(){
+async function loadShops(){
+  const {data, error} = await db.from('shops').select('*').order('created_at');
+  if(error){ console.error(error); return; }
+  SHOPS = data.map(s => ({
+    id:s.id, icon:s.icon, color:s.color, category:s.category_id,
+    name_ar:s.name_ar, name_en:s.name_en, tag:s.tag, address:s.address,
+    phone:s.phone, whatsapp:s.whatsapp, map:s.map_url, menu:s.menu_images,
+    plan:s.plan, expiry:s.expiry_date
+  }));
+}
+
+async function enterDashboard(){
+  document.getElementById('gateView').style.display = 'none';
+  document.getElementById('dashboardView').style.display = 'block';
+  await Promise.all([loadCats(), loadShops()]);
+  renderCategoryOptions();
+  renderCatRows();
+  renderShops();
+}
+
+async function tryLogin(){
+  const email = document.getElementById('emailInput').value.trim();
+  const password = document.getElementById('pwInput').value;
+  const {error} = await db.auth.signInWithPassword({email, password});
+  if(error){
+    document.getElementById('gateError').textContent = 'بيانات دخول غلط، جرب تاني';
+    document.getElementById('gateError').style.display = 'block';
+    return;
+  }
+  document.getElementById('gateError').style.display = 'none';
+  await enterDashboard();
+}
+
+async function logout(){
+  await db.auth.signOut();
   document.getElementById('dashboardView').style.display = 'none';
   document.getElementById('gateView').style.display = 'block';
   document.getElementById('pwInput').value = '';
@@ -396,7 +414,7 @@ function closeCatForm(){
   document.getElementById('catModalOverlay').classList.remove('active');
 }
 
-function saveCat(){
+async function saveCat(){
   const label = document.getElementById('cat_label').value.trim();
   const icon = document.getElementById('cat_icon').value.trim() || '🏷️';
   if(!label){
@@ -404,25 +422,31 @@ function saveCat(){
     return;
   }
   if(editingCatId){
-    const c = CATS.find(x=>x.id===editingCatId);
-    c.icon = icon; c.label = label;
+    const {error} = await db.from('categories').update({icon, label}).eq('id', editingCatId);
+    if(error){ showToast('حصل خطأ، جرب تاني'); console.error(error); return; }
     showToast('اتحفظ تعديل القسم');
   } else {
-    CATS.push({id:'cat'+(nextCatId++), icon, label});
+    const {error} = await db.from('categories').insert({
+      id: slugify(label), icon, label, sort_order: CATS.length + 1, active: false
+    });
+    if(error){ showToast('حصل خطأ، جرب تاني'); console.error(error); return; }
     showToast('اتضاف القسم');
   }
   closeCatForm();
+  await loadCats();
   renderCatRows();
   renderCategoryOptions();
   renderShops();
 }
 
-function deleteCat(id){
+async function deleteCat(id){
   if(SHOPS.some(s=>s.category===id)){
     showToast('فيه محلات مسجلة في القسم ده — انقلها لقسم تاني الأول');
     return;
   }
-  CATS.splice(CATS.findIndex(x=>x.id===id), 1);
+  const {error} = await db.from('categories').delete().eq('id', id);
+  if(error){ showToast('حصل خطأ، جرب تاني'); console.error(error); return; }
+  await loadCats();
   renderCatRows();
   renderCategoryOptions();
   showToast('اتمسح القسم');
@@ -444,8 +468,8 @@ function renderShops(){
       </div>
       <div class="row-actions">
         <span class="expiry-badge ${expiryClass(s)}">${expiryLabel(s)}</span>
-        <button class="icon-btn" onclick="openForm(${s.id})" aria-label="تعديل">✏️</button>
-        <button class="icon-btn danger" onclick="deleteShop(${s.id})" aria-label="حذف">🗑️</button>
+        <button class="icon-btn" onclick="openForm('${s.id}')" aria-label="تعديل">✏️</button>
+        <button class="icon-btn danger" onclick="deleteShop('${s.id}')" aria-label="حذف">🗑️</button>
       </div>
     </div>
   `).join('');
@@ -489,7 +513,7 @@ function updatePlanPreview(){
   preview.textContent = 'هينتهي في: ' + expiry;
 }
 
-function saveShop(){
+async function saveShop(){
   const name_ar = document.getElementById('f_name_ar').value.trim();
   const phone = document.getElementById('f_phone').value.trim();
   const phoneErr = document.getElementById('err_phone');
@@ -505,46 +529,50 @@ function saveShop(){
   }
   phoneErr.style.display = 'none';
 
+  const plan = document.getElementById('f_plan').value;
+  const planChanged = plan !== formOriginalPlan;
+  const expiry_date = (!editingId || planChanged)
+    ? (computeExpiry(plan) === 'lifetime' ? null : computeExpiry(plan))
+    : SHOPS.find(x=>x.id===editingId).expiry;
+
   const data = {
     name_ar,
     name_en: document.getElementById('f_name_en').value.trim() || name_ar,
-    category: document.getElementById('f_category').value,
+    category_id: document.getElementById('f_category').value,
     tag: document.getElementById('f_tag_ar').value.trim(),
     address: document.getElementById('f_address').value.trim(),
     phone,
     whatsapp: document.getElementById('f_whatsapp').value.trim() || phone,
-    map: document.getElementById('f_map').value.trim(),
+    map_url: document.getElementById('f_map').value.trim(),
     icon: document.getElementById('f_icon').value.trim() || '🏪',
-    menu: [
+    menu_images: [
       document.getElementById('f_menu1').value.trim(),
       document.getElementById('f_menu2').value.trim(),
       document.getElementById('f_menu3').value.trim(),
       document.getElementById('f_menu4').value.trim(),
     ].filter(Boolean),
-    plan: document.getElementById('f_plan').value,
+    plan,
+    expiry_date,
   };
 
-  const planChanged = data.plan !== formOriginalPlan;
-  if(!editingId || planChanged){
-    data.expiry = computeExpiry(data.plan);
-  } else {
-    data.expiry = SHOPS.find(x=>x.id===editingId).expiry;
-  }
-
   if(editingId){
-    const idx = SHOPS.findIndex(x=>x.id===editingId);
-    SHOPS[idx] = {...SHOPS[idx], ...data};
+    const {error} = await db.from('shops').update(data).eq('id', editingId);
+    if(error){ showToast('حصل خطأ، جرب تاني'); console.error(error); return; }
     showToast('اتحفظ التعديل');
   } else {
-    SHOPS.push({id:nextId++, color:COLORS[SHOPS.length % COLORS.length], ...data});
+    const {error} = await db.from('shops').insert({...data, color: COLORS[SHOPS.length % COLORS.length]});
+    if(error){ showToast('حصل خطأ، جرب تاني'); console.error(error); return; }
     showToast('اتضاف المحل');
   }
   closeForm();
+  await loadShops();
   renderShops();
 }
 
-function deleteShop(id){
-  SHOPS = SHOPS.filter(x=>x.id!==id);
+async function deleteShop(id){
+  const {error} = await db.from('shops').delete().eq('id', id);
+  if(error){ showToast('حصل خطأ، جرب تاني'); console.error(error); return; }
+  await loadShops();
   renderShops();
   showToast('اتمسح المحل');
 }
@@ -555,6 +583,10 @@ function showToast(msg){
   t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'), 1800);
 }
+
+db.auth.getSession().then(({data}) => {
+  if(data.session) enterDashboard();
+});
 </script>
 
 </body>
