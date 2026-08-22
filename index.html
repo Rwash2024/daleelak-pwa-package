@@ -279,7 +279,7 @@
     </div>
     <div class="search-bar">
       <span>🔍</span>
-      <span id="searchLabel">دور على محل، مطعم، أو أكلة...</span>
+      <input id="searchInput" type="text" oninput="onSearchInput(this.value)" style="border:none;background:transparent;outline:none;flex:1;font-family:inherit;font-size:14px;color:var(--ink);padding:0;">
     </div>
   </header>
 
@@ -325,6 +325,7 @@ const I18N = {
     shopsCount:'محل', comingSoon:'قريبًا', back:'→ رجوع',
     addressLabel:'العنوان', phoneLabel:'تليفون',
     call:'📞 اتصال', whatsapp:'💬 واتساب', map:'🗺️ الموقع',
+    searchResultsFor:'نتايج البحث عن', noResults:'مفيش نتايج',
     footer:'دليلك — دليل مجاني لمحلات النزهة وقباء. التواصل والطلب بيتم مباشرة مع المحل.'
   },
   en:{
@@ -335,6 +336,7 @@ const I18N = {
     shopsCount:'shops', comingSoon:'Soon', back:'← Back',
     addressLabel:'Address', phoneLabel:'Phone',
     call:'📞 Call', whatsapp:'💬 WhatsApp', map:'🗺️ Location',
+    searchResultsFor:'Results for', noResults:'No results found',
     footer:'Daleelak — a free directory for Nozha and Qubaa shops. Contact and ordering happens directly with the shop.'
   }
 };
@@ -377,7 +379,7 @@ function applyStaticText(){
   document.getElementById('brandName').textContent = t('brandName');
   document.getElementById('brandSub').textContent = t('brandSub');
   document.getElementById('areaPill').textContent = t('area');
-  document.getElementById('searchLabel').textContent = t('search');
+  document.getElementById('searchInput').placeholder = t('search');
   document.getElementById('sectionsTitle').textContent = t('sectionsTitle');
   document.getElementById('sectionsSub').textContent = t('sectionsSub');
   document.getElementById('featuredTitle').textContent = t('featuredTitle');
@@ -417,22 +419,57 @@ function renderFeatured(){
 }
 
 let currentCatId = 'food';
+let searchQuery = '';
+let lastListContext = {type:'category', id:'food'};
+
+function matchesSearch(s, q){
+  const hay = [s.name[LANG], s.tag[LANG], s.address[LANG]].join(' ').toLowerCase();
+  return hay.includes(q.toLowerCase());
+}
+
 function renderShopList(){
-  const cat = CATS.find(c=>c.id===currentCatId);
-  document.getElementById('listTitle').textContent = cat ? cat.label[LANG] : '';
-  const shops = SHOPS.filter(s=>s.catId===currentCatId);
-  document.getElementById('shopList').innerHTML = shops.map(shopCardHTML).join('');
+  const listTitle = document.getElementById('listTitle');
+  let shops;
+  if(searchQuery){
+    listTitle.textContent = `${t('searchResultsFor')} "${searchQuery}"`;
+    shops = SHOPS.filter(s=>matchesSearch(s, searchQuery));
+  } else {
+    const cat = CATS.find(c=>c.id===currentCatId);
+    listTitle.textContent = cat ? cat.label[LANG] : '';
+    shops = SHOPS.filter(s=>s.catId===currentCatId);
+  }
+  document.getElementById('shopList').innerHTML = shops.length
+    ? shops.map(shopCardHTML).join('')
+    : `<div style="text-align:center;color:var(--muted);font-size:13px;padding:30px 10px;">${t('noResults')}</div>`;
 }
 
 function showHome(){
   currentView = 'home';
+  searchQuery = '';
+  document.getElementById('searchInput').value = '';
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-home').classList.add('active','fade-in');
 }
 
 function openCategory(catId){
   currentView = 'list';
+  searchQuery = '';
+  document.getElementById('searchInput').value = '';
   currentCatId = catId;
+  lastListContext = {type:'category', id:catId};
+  renderShopList();
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-list').classList.add('active','fade-in');
+}
+
+function onSearchInput(value){
+  searchQuery = value.trim();
+  if(!searchQuery){
+    if(currentView === 'list' && lastListContext.type === 'search') showHome();
+    return;
+  }
+  currentView = 'list';
+  lastListContext = {type:'search'};
   renderShopList();
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-list').classList.add('active','fade-in');
@@ -441,7 +478,7 @@ function openCategory(catId){
 function renderShopDetail(id){
   const s = SHOPS.find(x=>x.id===id);
   document.getElementById('detailContent').innerHTML = `
-    <button class="back-btn" style="margin:8px 0 -30px;" onclick="openCategory('${s.catId}')">${t('back')}</button>
+    <button class="back-btn" style="margin:8px 0 -30px;" onclick="goBackFromDetail()">${t('back')}</button>
     <div style="height:60px;background:${s.color};border-radius:18px 18px 0 0;margin-top:8px;"></div>
     <div class="detail-hero">
       <div class="detail-body">
@@ -476,6 +513,17 @@ function renderShopDetail(id){
       </div>
     </div>
   `;
+}
+
+function goBackFromDetail(){
+  if(lastListContext.type === 'search'){
+    currentView = 'list';
+    renderShopList();
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById('view-list').classList.add('active','fade-in');
+  } else {
+    openCategory(lastListContext.id);
+  }
 }
 
 let lastShopId = null;
