@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lalezar&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="vendor/qrcode.min.js"></script>
 <style>
   :root{
     --cream:#FBF1E4; --paper:#FFFFFF; --red:#D93829; --red-dark:#A82B1F;
@@ -170,12 +171,14 @@
     <div class="toolbar">
       <h3>المحلات</h3>
       <div style="display:flex;gap:8px;">
+        <button class="btn-add" style="background:#5B6B8C;" onclick="downloadBackup()">💾 نسخة احتياطية</button>
         <button class="btn-add" style="background:var(--gold-dark);" onclick="openPricesForm()">💰 أسعار الباقات</button>
         <button class="btn-add" style="background:var(--ink);" onclick="openReport()">📊 تقرير</button>
         <button class="btn-add" onclick="openForm()">+ إضافة محل</button>
       </div>
     </div>
 
+    <div id="backupHint" class="hint" style="margin:-4px 2px 12px;font-size:11.5px;"></div>
     <div id="shopRows"></div>
   </div>
 </div>
@@ -503,6 +506,7 @@ async function enterDashboard(){
   document.getElementById('gateView').style.display = 'none';
   document.getElementById('dashboardView').style.display = 'block';
   await Promise.all([loadCats(), loadShops(), loadPlanPrices(), loadBilling()]);
+  updateBackupHint();
   renderCategoryOptions();
   renderCatRows();
   renderShops();
@@ -706,6 +710,7 @@ function renderShops(){
       <div class="row-actions">
         ${payBadge}
         <span class="expiry-badge ${expiryClass(s)}">${expiryLabel(s)}</span>
+        <button class="icon-btn" onclick="openShopPoster('${s.id}')" aria-label="بوستر QR" title="بوستر QR جاهز للطباعة">🖨️</button>
         <button class="icon-btn" onclick="openForm('${s.id}')" aria-label="تعديل">✏️</button>
         <button class="icon-btn danger" onclick="deleteShop('${s.id}')" aria-label="حذف">🗑️</button>
       </div>
@@ -768,6 +773,143 @@ function clearImage(slot){
     document.getElementById('f_menu_file'+(idx+1)).value = '';
     renderPreview(document.getElementById('menuPreview'+(idx+1)), null, '—', 'cover', 'menuRemoveBtn'+(idx+1));
   }
+}
+
+/* =========================================================
+   backup / shop poster / owner report
+   ========================================================= */
+const SITE_URL = 'https://daleelak.vercel.app';
+const BACKUP_TABLES = ['categories', 'shops', 'shop_billing', 'plan_prices'];
+
+function updateBackupHint(){
+  const el = document.getElementById('backupHint');
+  if(!el) return;
+  let last = 0;
+  try{ last = Number(localStorage.getItem('dl_last_backup')) || 0; }catch(e){}
+  if(!last){ el.textContent = 'لسه ماعملتش نسخة احتياطية — دوس "💾 نسخة احتياطية" واحفظ الملف في مكان آمن.'; el.style.color = 'var(--danger)'; return; }
+  const days = Math.floor((Date.now() - last) / 86400000);
+  if(days >= 7){ el.textContent = 'آخر نسخة احتياطية من ' + days + ' يوم — يفضّل تحمّل نسخة جديدة.'; el.style.color = 'var(--gold-dark)'; }
+  else { el.textContent = days === 0 ? 'آخر نسخة احتياطية: النهارده ✓' : 'آخر نسخة احتياطية من ' + days + ' يوم ✓'; el.style.color = 'var(--green)'; }
+}
+
+async function downloadBackup(){
+  showToast('بيجهّز النسخة الاحتياطية...');
+  const out = {app:'daleelak', exported_at:new Date().toISOString(), tables:{}};
+  for(const name of BACKUP_TABLES){
+    const {data, error} = await db.from(name).select('*');
+    if(error){ showToast('حصل خطأ وانا بحمّل ' + name); console.error(error); return; }
+    out.tables[name] = data;
+  }
+  const blob = new Blob([JSON.stringify(out, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'daleelak-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 8000);
+  try{ localStorage.setItem('dl_last_backup', String(Date.now())); }catch(e){}
+  updateBackupHint();
+  showToast('اتحمّلت النسخة الاحتياطية ✓');
+}
+
+/* printable A5 poster for one shop: its name, logo and a QR straight to its page */
+async function openShopPoster(id){
+  const s = SHOPS.find(x => x.id === id);
+  if(!s) return;
+  if(typeof QRCode === 'undefined'){ showToast('مكتبة الـQR مش متحمّلة — حدّث الصفحة وجرب تاني'); return; }
+  const w = window.open('', '_blank');
+  if(!w){ showToast('المتصفح منع النافذة — اسمح بالنوافذ المنبثقة لو سمحت'); return; }
+  w.document.write('<p style="font-family:sans-serif;padding:24px">جاري تجهيز البوستر...</p>');
+  const url = SITE_URL + '/#shop=' + encodeURIComponent(s.id);
+  const svg = (await QRCode.toString(url, {type:'svg', errorCorrectionLevel:'H', margin:0, color:{dark:'#2B211B', light:'#FFFFFF'}})).replace(/<\?xml[^>]*>/, '');
+  const color = /^#[0-9a-fA-F]{3,8}$/.test(s.color || '') ? s.color : '#D93829';
+  const name = s.name_ar || '', tag = s.tag || '';
+  const nameMm = name.length > 26 ? 8 : name.length > 16 ? 10 : 12;
+  const logo = isImageUrl(s.logo_url) ? '<img src="' + esc(s.logo_url) + '" alt="">' : '<span class="emo">' + esc(s.icon || '🏪') + '</span>';
+  const html = `<!DOCTYPE html>
+<html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>بوستر — ${esc(name)}</title>
+<link href="https://fonts.googleapis.com/css2?family=Lalezar&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  @page{size:A5;margin:0;}
+  *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  html,body{margin:0;background:#d9d2c6;}
+  body{font-family:'Tajawal',sans-serif;color:#2B211B;display:flex;flex-direction:column;align-items:center;}
+  .poster{width:148mm;height:210mm;background:#FBF1E4;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;}
+  .band{width:100%;background:linear-gradient(155deg,${color},color-mix(in srgb,${color} 55%,#000));color:#fff;text-align:center;padding:8mm 8mm 12mm;position:relative;}
+  .band::after{content:"";position:absolute;left:0;right:0;bottom:0;height:4mm;background-image:radial-gradient(circle,#FBF1E4 1.9mm,transparent 2mm);background-size:8mm 7mm;background-position:0 -2.3mm;}
+  .logo{width:24mm;height:24mm;border-radius:6mm;background:#fff;margin:0 auto 3mm;display:flex;align-items:center;justify-content:center;box-shadow:0 2mm 5mm rgba(0,0,0,.3);overflow:hidden;padding:2mm;}
+  .logo img{width:100%;height:100%;object-fit:contain;}
+  .logo .emo{font-size:13mm;line-height:1;}
+  .name{font-family:'Lalezar',sans-serif;font-size:${nameMm}mm;line-height:1.15;}
+  .tag{font-size:4mm;opacity:.92;margin-top:1.5mm;}
+  h1{font-family:'Lalezar',sans-serif;font-weight:400;font-size:9mm;line-height:1.25;text-align:center;margin:5mm 8mm 0;}
+  h1 span{color:${color};}
+  .sub{font-size:3.9mm;color:#8C7A6B;margin-top:1.5mm;text-align:center;}
+  .ticket{position:relative;margin-top:6mm;background:#fff;border:.7mm dashed #E8A33D;border-radius:6mm;padding:5mm;}
+  .ticket .badge{position:absolute;top:-4.6mm;left:50%;transform:translateX(-50%);background:${color};color:#fff;font-weight:800;font-size:4mm;padding:1.4mm 6mm;border-radius:10mm;border:1mm solid #FBF1E4;white-space:nowrap;}
+  .qr{width:56mm;height:56mm;}
+  .qr svg{width:100%;height:100%;display:block;}
+  .hint{margin-top:5mm;font-size:4mm;font-weight:700;text-align:center;}
+  .brand{position:absolute;bottom:0;left:0;right:0;background:#2B211B;color:#FBF1E4;text-align:center;padding:3.2mm 6mm;font-size:3.5mm;display:flex;align-items:center;justify-content:center;gap:2.5mm;}
+  .brand img{width:7mm;height:7mm;border-radius:2mm;background:#fff;object-fit:contain;}
+  .brand b{font-family:'Lalezar',sans-serif;font-weight:400;font-size:5mm;}
+  .noprint{margin:14px;padding:12px 26px;border:none;border-radius:12px;background:#D93829;color:#fff;font-family:'Tajawal',sans-serif;font-weight:800;font-size:16px;cursor:pointer;}
+  @media print{html,body{background:none;} .noprint{display:none;}}
+</style></head>
+<body>
+<button class="noprint" onclick="window.print()">🖨️ اطبع البوستر (مقاس A5)</button>
+<div class="poster">
+  <div class="band">
+    <div class="logo">${logo}</div>
+    <div class="name">${esc(name)}</div>
+    ${tag ? '<div class="tag">' + esc(tag) + '</div>' : ''}
+  </div>
+  <h1>تواصل معانا <span>بضغطة واحدة</span></h1>
+  <div class="sub">اتصال · واتساب · موقعنا · المنيو</div>
+  <div class="ticket"><div class="badge">📲 امسح الكود</div><div class="qr">${svg}</div></div>
+  <div class="hint">افتح كاميرا التليفون ووجّهها على الكود</div>
+  <div class="brand"><img src="https://nhtqdfnmdsrhbplfkdey.supabase.co/storage/v1/object/public/shop-images/branding/logo.png" alt=""><span>موجودين على <b>دليلك</b> — دليل محلات النزهة وقباء</span></div>
+</div>
+</body></html>`;
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+}
+
+/* Egyptian mobile numbers written as 010... become 2010... for wa.me */
+function waNumber(n){
+  let d = String(n || '').replace(/\D/g, '');
+  if(d.startsWith('00')) d = d.slice(2);
+  if(d.length === 11 && d.startsWith('01')) d = '2' + d;
+  else if(d.length === 10 && d.startsWith('1')) d = '20' + d;
+  return d.length >= 11 ? d : '';
+}
+function isFeaturedNow(s){
+  if(s.plan === 'lifetime') return true;
+  if(!s.plan || s.plan === 'none' || !s.expiry) return false;
+  return s.expiry >= new Date().toISOString().slice(0, 10);
+}
+let LAST_STATS = {}, LAST_DAYS = 30;
+
+/* ready-to-send WhatsApp message with the shop's real numbers (opens in the admin's own WhatsApp) */
+function sendShopReport(id){
+  const s = SHOPS.find(x => x.id === id);
+  if(!s) return;
+  const num = waNumber(s.whatsapp || s.phone);
+  if(!num){ showToast('رقم الواتساب بتاع المحل مش مكتوب صح'); return; }
+  const st = LAST_STATS[id] || {views:0, calls:0, whatsapps:0, maps:0};
+  const link = SITE_URL + '/#shop=' + encodeURIComponent(id);
+  const period = LAST_DAYS === 7 ? 'الأسبوع اللي فات' : 'آخر ' + LAST_DAYS + ' يوم';
+  let msg;
+  if(!st.views){
+    msg = 'أهلاً يا فندم 🌟\nصفحة محلك (' + s.name_ar + ') جاهزة على *دليلك*:\n' + link +
+          '\n\nابعتها لعملاءك على واتساب وحطها في بروفايلك على السوشيال، وأول ما العملاء يفتحوها هتظهرلك الأرقام.';
+  } else {
+    msg = 'أهلاً يا فندم 🌟\nدي أرقام محلك (' + s.name_ar + ') على *دليلك* ' + period + ':\n\n' +
+          '👁 ' + st.views + ' زيارة لصفحة المحل\n📞 ' + st.calls + ' اتصال\n💬 ' + st.whatsapps + ' رسالة واتساب\n📍 ' + st.maps + ' طلبوا اللوكيشن\n\n' +
+          'صفحتك: ' + link;
+    if(!isFeaturedNow(s)) msg += '\n\nولو حابب محلك يظهر في أول القايمة بشارة ⭐ مميز، كلمني.';
+  }
+  window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');
 }
 
 /* ===== opening hours editor ===== */
@@ -1025,6 +1167,7 @@ async function openReport(){
   const statsOk = !statsRes.error;
   const STATS = {};
   if(statsOk) (statsRes.data || []).forEach(r => { STATS[r.shop_id] = r; });
+  LAST_STATS = STATS; LAST_DAYS = days;
 
   let collected = 0, pending = 0;
   const rows = SHOPS.map(s => {
@@ -1044,6 +1187,7 @@ async function openReport(){
         <div class="row-actions">
           <span class="expiry-badge ${b.collected ? 'expiry-ok' : 'expiry-soon'}">${b.collected ? 'اتحصّل' : 'لسه'}</span>
           <span class="expiry-badge ${expiryClass(s)}">${expiryLabel(s)}</span>
+          ${statsOk ? `<button class="icon-btn" title="ابعت تقرير لصاحب المحل على واتساب" onclick="sendShopReport('${s.id}')">📤</button>` : ''}
         </div>
       </div>
     `;
