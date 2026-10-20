@@ -85,11 +85,24 @@
   .expiry-none{background:#EFEAE0;color:var(--muted);}
 
   .empty{text-align:center;color:var(--muted);font-size:13px;padding:30px 10px;}
+  .alert-card{background:#FCEFDC;border:1px solid #F0D3A0;border-radius:16px;padding:14px;margin:14px 0 4px;}
+  .alert-title{font-weight:800;font-size:14px;color:var(--gold-dark);margin-bottom:8px;}
+  .alert-row{display:flex;align-items:center;gap:10px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:9px 12px;margin-top:6px;}
+  .alert-info{flex:1;min-width:0;}
+  .alert-name{font-weight:800;font-size:14px;}
+  .alert-meta{font-size:12px;color:var(--muted);margin-top:1px;}
+  .alert-meta .soonc{color:var(--gold-dark);}
+  .alert-meta .late{color:var(--danger);}
+  .alert-actions{display:flex;gap:6px;flex-shrink:0;}
+  .alert-btn{border:1px solid var(--line);background:var(--cream);color:var(--ink);font-family:'Tajawal';font-weight:700;font-size:12px;padding:7px 10px;border-radius:9px;cursor:pointer;white-space:nowrap;}
+  .alert-btn.wa{background:#25D366;border-color:#25D366;color:#fff;}
   .hours-edit-row{display:grid;grid-template-columns:62px 72px 1fr 1fr;gap:6px;align-items:center;margin-bottom:6px;}
   .hours-edit-row .hd{font-size:12px;font-weight:700;}
   .hours-edit-row .hc{display:flex;align-items:center;gap:4px;margin:0;font-size:11px;cursor:pointer;color:var(--ink);}
   .hours-edit-row .hc input{width:auto;}
   .hours-edit-row input[type="time"]:disabled{opacity:.35;}
+  #menuGroup.single .field-row{grid-template-columns:150px !important;}
+  #menuGroup.single .field-row > div:nth-child(n+2){display:none;}
 
   /* Modal form */
   .modal-overlay{
@@ -156,6 +169,7 @@
   </header>
 
   <div class="wrap">
+    <div id="expiryAlert"></div>
     <div class="stats">
       <div class="stat-card"><div class="stat-num" id="statCount">0</div><div class="stat-label">محل مسجل</div></div>
       <div class="stat-card"><div class="stat-num" id="statCollected">0 ج</div><div class="stat-label">متحصّل</div></div>
@@ -334,6 +348,7 @@
     </div>
     <div class="hint" id="hoursUnsupported" style="display:none;">مواعيد العمل لسه مش مفعّلة — شغّل ملف 04_opening_hours.sql في Supabase.</div>
 
+    <div class="hint" id="photoRule" style="display:none;color:var(--danger);font-weight:700;margin:0 0 8px;">لازم صورة حقيقية واحدة على الأقل: صورة الشخص أو صورة المركبة (عربية / توك توك / موتوسيكل) — عشان العملاء تثق فيه. الإيموجي مش بيتحسب.</div>
     <div class="field-group">
       <label id="lbl_logo">لوجو المحل (صورة) — أو إيموجي احتياطي لو مفيش صورة</label>
       <div style="display:flex;align-items:center;gap:10px;">
@@ -654,30 +669,41 @@ function renderCatRows(){
 
 let pendingCatImageUrl = null;
 
-/* shrink phone-sized photos before upload: longest side capped, re-encoded as WebP.
-   Falls back to the original file if anything about it is unsupported (HEIC, Safari WebP encoding, tiny files...). */
+/* shrink phone-sized photos before upload: longest side capped, re-encoded as WebP, or as JPEG in browsers that
+   cannot encode WebP (some Safari versions). Small files are left alone. HEIC/GIF cannot be decoded here and come
+   back untouched, so the callers refuse them when they are big (see tooBigToStore). */
 async function compressImage(file, maxSide){
   if(!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size < 150 * 1024) return file;
   try{
     const bmp = await createImageBitmap(file);
     const scale = Math.min(1, maxSide / Math.max(bmp.width, bmp.height));
     const w = Math.max(1, Math.round(bmp.width * scale)), h = Math.max(1, Math.round(bmp.height * scale));
-    const canvas = document.createElement('canvas');
-    canvas.width = w; canvas.height = h;
-    canvas.getContext('2d').drawImage(bmp, 0, 0, w, h);
-    const blob = await new Promise(res => canvas.toBlob(res, 'image/webp', 0.82));
-    return (blob && blob.type === 'image/webp' && blob.size < file.size) ? blob : file;
+    for(const [type, quality] of [['image/webp', 0.8], ['image/jpeg', 0.8]]){
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if(type === 'image/jpeg'){ ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h); }   // JPEG has no transparency
+      ctx.drawImage(bmp, 0, 0, w, h);
+      const blob = await new Promise(res => canvas.toBlob(res, type, quality));
+      if(blob && blob.type === type) return blob.size < file.size ? blob : file;
+    }
+    return file;
   }catch(e){ return file; }
 }
 function imageExt(blob, original){
-  return blob.type === 'image/webp' ? 'webp' : (original.name.split('.').pop() || 'jpg').toLowerCase();
+  if(blob.type === 'image/webp') return 'webp';
+  if(blob.type === 'image/jpeg' && blob !== original) return 'jpg';
+  return (original.name.split('.').pop() || 'jpg').toLowerCase();
 }
 function kb(n){ return n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.round(n / 1024) + ' KB'; }
+/* an image we could not shrink and that is still big must not be stored as is */
+function tooBigToStore(original, file){ return file === original && original.size > 3 * 1024 * 1024; }
 
 async function uploadCatImage(input){
   const original = input.files[0];
   if(!original) return;
-  const file = await compressImage(original, 700);
+  const file = await compressImage(original, 320);
+  if(tooBigToStore(original, file)){ showToast('الصورة كبيرة (' + kb(original.size) + ') ومقدرتش أصغّرها — احفظها JPG أو صوّرها تاني'); input.value = ''; return; }
   const path = `cat-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${imageExt(file, original)}`;
   const {error} = await db.storage.from('shop-images').upload(path, file, {contentType: file.type || original.type});
   if(error){ showToast('حصل خطأ في رفع الصورة'); console.error(error); return; }
@@ -742,6 +768,7 @@ async function deleteCat(id){
 
 function renderShops(){
   document.getElementById('statCount').textContent = SHOPS.length;
+  renderExpiryAlert();
   let collectedSum = 0, pendingSum = 0;
   SHOPS.forEach(s => {
     const b = BILLING[s.id];
@@ -763,7 +790,7 @@ function renderShops(){
       : '';
     return `
     <div class="shop-row">
-      <div class="row-logo" style="background:${s.color};overflow:hidden;">${isImageUrl(s.logo_url) ? `<img src="${s.logo_url}" style="width:100%;height:100%;object-fit:contain;">` : s.icon}</div>
+      <div class="row-logo" style="background:${s.color};overflow:hidden;">${thumbUrl(s) ? `<img src="${thumbUrl(s)}" style="width:100%;height:100%;object-fit:${s.kind === 'service' ? 'cover' : 'contain'};">` : s.icon}</div>
       <div class="row-info">
         <div class="row-name">${s.name_ar}</div>
         <div class="row-meta">${catLabel(s.category)} · ${s.tag}${s.menu && s.menu.length ? ' · ' + s.menu.length + ' صورة منيو' : ''}${hoursSummary(s.hours)}${serviceSummary(s)}</div>
@@ -802,7 +829,12 @@ async function uploadImage(input, slot){
   if(!original) return;
   const hint = document.getElementById('uploadHint');
   hint.textContent = 'بيجهّز الصورة ويرفعها...';
-  const file = await compressImage(original, slot === 'logo' ? 700 : 1400);
+  const file = await compressImage(original, slot === 'logo' ? 640 : 1200);
+  if(tooBigToStore(original, file)){
+    hint.textContent = 'الصورة كبيرة (' + kb(original.size) + ') ومقدرتش أصغّرها — احفظها JPG أو صوّرها تاني';
+    input.value = '';
+    return;
+  }
   const path = `${slot}-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${imageExt(file, original)}`;
   const {error} = await db.storage.from('shop-images').upload(path, file, {contentType: file.type || original.type});
   if(error){ hint.textContent = 'حصل خطأ في رفع الصورة'; console.error(error); return; }
@@ -885,7 +917,7 @@ async function openShopPoster(id){
   const color = /^#[0-9a-fA-F]{3,8}$/.test(s.color || '') ? s.color : '#D93829';
   const name = s.name_ar || '', tag = s.tag || '';
   const nameMm = name.length > 26 ? 8 : name.length > 16 ? 10 : 12;
-  const logo = isImageUrl(s.logo_url) ? '<img src="' + esc(s.logo_url) + '" alt="">' : '<span class="emo">' + esc(s.icon || '🏪') + '</span>';
+  const logo = thumbUrl(s) ? '<img src="' + esc(thumbUrl(s)) + '" alt="">' : '<span class="emo">' + esc(s.icon || '🏪') + '</span>';
   const html = `<!DOCTYPE html>
 <html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>بوستر — ${esc(name)}</title>
 <link href="https://fonts.googleapis.com/css2?family=Lalezar&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
@@ -982,9 +1014,13 @@ let loadedVerifiedAt = null;
 const SVC_LABELS = {delivery:'توصيل طلبات', tuktuk:'توك توك', car:'تاكسي وملاكي', cargo:'شحن ونقل', other:'خدمات تانية'};
 const KIND_TEXT = {
   shop:    {title:'إضافة محل جديد',  edit:'تعديل بيانات المحل',          name:'اسم المحل (عربي)',          nameEn:'Shop name (English)', tag:'وصف قصير / نوع الأكل', address:'العنوان',                         logo:'لوجو المحل (صورة) — أو إيموجي احتياطي لو مفيش صورة', menu:'صور المنيو / العروض (لحد 4 صور)'},
-  service: {title:'إضافة خدمة جديدة', edit:'تعديل بيانات مقدّم الخدمة', name:'اسم مقدّم الخدمة (عربي)', nameEn:'Name (English)',     tag:'وصف قصير',            address:'نقطة التواجد / العنوان (اختياري)', logo:'الصورة الشخصية — أو إيموجي احتياطي لو مفيش صورة', menu:'صور المركبة (اختياري، لحد 4 صور)'}
+  service: {title:'إضافة خدمة جديدة', edit:'تعديل بيانات مقدّم الخدمة', name:'اسم مقدّم الخدمة (عربي)', nameEn:'Name (English)',     tag:'وصف قصير',            address:'نقطة التواجد / العنوان (اختياري)', logo:'صورة الشخص', menu:'صورة المركبة (عربية / توك توك / موتوسيكل)'}
 };
 
+function thumbUrl(s){
+  if(isImageUrl(s.logo_url)) return s.logo_url;
+  return (s.kind === 'service' && isImageUrl((s.menu || [])[0])) ? s.menu[0] : null;
+}
 function serviceSummary(s){
   let out = '';
   if(s.kind === 'service') out += ' · خدمة: ' + (SVC_LABELS[s.service_type] || '') + (s.verified ? ' ✓ موثّق' : ' (لسه ماتوثقش)');
@@ -1005,7 +1041,9 @@ function updateKindUI(wantedCat){
   document.getElementById('serviceFields').style.display = isSvcKind ? 'block' : 'none';
   // things that only make sense for a shop
   document.getElementById('mapGroup').style.display = isSvcKind ? 'none' : '';
-  document.getElementById('menuGroup').style.display = isSvcKind ? 'none' : '';
+  document.getElementById('menuGroup').style.display = '';
+  document.getElementById('menuGroup').classList.toggle('single', isSvcKind);
+  document.getElementById('photoRule').style.display = isSvcKind ? 'block' : 'none';
   document.getElementById('f_icon').style.display = isSvcKind ? 'none' : '';
   document.getElementById('hoursGroup').style.display = (!isSvcKind && HOURS_SUPPORTED) ? '' : 'none';
   document.getElementById('hoursUnsupported').style.display = (isSvcKind || HOURS_SUPPORTED) ? 'none' : 'block';
@@ -1015,6 +1053,7 @@ function updateKindUI(wantedCat){
   document.getElementById('lbl_tag').textContent = tx.tag;
   document.getElementById('lbl_address').textContent = tx.address;
   document.getElementById('lbl_logo').textContent = tx.logo;
+  document.getElementById('lbl_menu').textContent = tx.menu;
   document.getElementById('f_name_ar').placeholder = isSvcKind ? 'مثال: أحمد السيد' : 'مطعم الأصيل';
   document.getElementById('f_name_en').placeholder = isSvcKind ? 'Ahmed El Sayed' : 'Al Aseel Restaurant';
   document.getElementById('f_tag_ar').placeholder = isSvcKind ? 'مثال: بوصّل طلبات من الصبح للفجر' : 'مثال: أكل شعبي — كشري وفول';
@@ -1064,6 +1103,10 @@ function readServiceFields(){
     showToast('لازم تتأكد إنه وافق على نشر رقمه الأول');
     return false;
   }
+  if(!isImageUrl(pendingLogoUrl) && !isImageUrl(pendingMenuUrls[0])){
+    showToast('لازم ترفع صورة حقيقية: صورة الشخص أو صورة المركبة (الإيموجي مش بيتحسب)');
+    return false;
+  }
   return {
     kind:'service',
     service_type: document.getElementById('f_svc_type').value,
@@ -1084,6 +1127,82 @@ async function savePrivateNote(shopId, svc){
     updated_at: new Date().toISOString()
   });
   if(error){ console.error(error); showToast('اتحفظ، بس ملاحظات التحقق ماتحفظتش'); }
+}
+
+/* =========================================================
+   subscription reminders: who expires within REMINDER_DAYS (and who just expired)
+   ========================================================= */
+const REMINDER_DAYS = 3;     // how many days before the end we start nagging
+const RECENT_DAYS = 14;      // keep showing "expired" for this long, so there is still time to win them back
+const BASE_TITLE = document.title;
+
+function daysLeftFor(s){ return Math.ceil((new Date(s.expiry) - new Date()) / 86400000); }
+
+/* free trials and "no plan" never show up here: a 24h trial would always be "about to expire" and drown the real ones */
+function expiryAlerts(){
+  const soon = [], recent = [];
+  SHOPS.forEach(s => {
+    if(!s.plan || s.plan === 'none' || s.plan === 'lifetime' || s.plan === 'trial24h' || !s.expiry) return;
+    const d = daysLeftFor(s);
+    if(d >= 0 && d <= REMINDER_DAYS) soon.push({s, d});
+    else if(d < 0 && d >= -RECENT_DAYS) recent.push({s, d});
+  });
+  soon.sort((a, b) => a.d - b.d);
+  recent.sort((a, b) => b.d - a.d);
+  return {soon, recent};
+}
+
+function whenText(d){
+  if(d === 0) return 'بينتهي النهارده';
+  if(d === 1) return 'بينتهي بكرة';
+  if(d === 2) return 'بينتهي بعد يومين';
+  if(d > 1) return 'بينتهي بعد ' + d + ' أيام';
+  return 'انتهى من ' + Math.abs(d) + (Math.abs(d) === 1 ? ' يوم' : ' أيام');
+}
+
+function renewalMessage(s, d){
+  const mine = s.kind === 'service' ? 'خدمتك' : 'محلك';
+  const plan = PLAN_LABELS[s.plan] || s.plan;
+  const price = (BILLING[s.id] && BILLING[s.id].price) || PLAN_PRICES[s.plan] || 0;
+  let msg = 'أهلاً يا فندم 🌟\nاشتراك ' + mine + ' (' + s.name_ar + ') على *دليلك* (باقة ' + plan + ') ' + whenText(d) + '.\n\n';
+  msg += d >= 0
+    ? 'لو حابب نجدّده عشان الظهور لعملاءك يفضل مستمر من غير انقطاع، قولّي وأجدّده فورًا'
+    : 'لو حابب نرجّع الظهور لعملاءك تاني، قولّي وأجدّد الاشتراك فورًا';
+  if(price > 0) msg += ' (التجديد ' + price + ' جنيه)';
+  return msg + '.';
+}
+
+function sendRenewal(id){
+  const s = SHOPS.find(x => x.id === id);
+  if(!s) return;
+  const num = waNumber(s.whatsapp || s.phone);
+  if(!num){ showToast('رقم الواتساب بتاع المحل مش مكتوب صح'); return; }
+  window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(renewalMessage(s, daysLeftFor(s))), '_blank', 'noopener');
+}
+
+function renderExpiryAlert(){
+  const box = document.getElementById('expiryAlert');
+  if(!box) return;
+  const {soon, recent} = expiryAlerts();
+  const n = soon.length + recent.length;
+  document.title = n ? '(' + n + ') ' + BASE_TITLE : BASE_TITLE;      // shows on the browser tab even when you are elsewhere
+  if(!n){ box.innerHTML = ''; return; }
+  const row = ({s, d}) => `
+    <div class="alert-row">
+      <div class="alert-info">
+        <div class="alert-name">${esc(s.name_ar)}</div>
+        <div class="alert-meta">${esc(PLAN_LABELS[s.plan] || s.plan)} · <b class="${d < 0 ? 'late' : 'soonc'}">${whenText(d)}</b></div>
+      </div>
+      <div class="alert-actions">
+        <button type="button" class="alert-btn wa" onclick="sendRenewal('${s.id}')">📲 ذكّره</button>
+        <button type="button" class="alert-btn" onclick="openForm('${s.id}')">🔄 جدّد</button>
+      </div>
+    </div>`;
+  box.innerHTML = `
+    <div class="alert-card">
+      ${soon.length ? `<div class="alert-title">⏰ اشتراكات هتنتهي خلال ${REMINDER_DAYS} أيام (${soon.length})</div>${soon.map(row).join('')}` : ''}
+      ${recent.length ? `<div class="alert-title" style="${soon.length ? 'margin-top:12px;' : ''}color:var(--danger);">⚠️ انتهت من فترة قصيرة (${recent.length})</div>${recent.map(row).join('')}` : ''}
+    </div>`;
 }
 
 /* ===== opening hours editor ===== */
@@ -1273,7 +1392,7 @@ async function saveShop(){
   if(HOURS_SUPPORTED) data.hours = hours;
   if(svc) Object.assign(data, svc);
   if(savingProvider){
-    data.menu_images = [];
+    data.menu_images = pendingMenuUrls.filter(Boolean).slice(0, 1);   // one vehicle photo
     data.icon = '🛵';
     if(HOURS_SUPPORTED) data.hours = null;
   }

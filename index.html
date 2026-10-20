@@ -537,6 +537,8 @@
   }
   .cat-glyph svg{width:26px;height:26px;}
   .shop-logo.avatar,.detail-logo.avatar{border-radius:50%;}
+  .shop-logo.avatar.has-img,.detail-logo.avatar.has-img{padding:0;}
+  .shop-logo.avatar img,.detail-logo.avatar img{object-fit:cover;}
   .verified-badge{
     display:inline-flex;align-items:center;gap:4px;margin-inline-start:6px;vertical-align:middle;
     background:rgba(46,125,91,.14);color:#2E7D5B;font-size:10.5px;font-weight:800;
@@ -853,7 +855,7 @@ const I18N = {
     techInfo:'— معلومات تقنية —', versionLabel:'الإصدار', pageLabel:'الصفحة', deviceLabel:'الجهاز', shopLabel:'المحل',
     verified:'موثّق', providersCount:'مقدّم خدمة', filterAll:'الكل', filterAvail:'متاح الآن',
     svc_delivery:'توصيل طلبات', svc_tuktuk:'توك توك', svc_car:'تاكسي وملاكي', svc_cargo:'شحن ونقل', svc_other:'خدمات تانية',
-    areaLabel:'بيخدم منطقة', vehicleLabel:'المركبة', availLabel:'مواعيد التواجد', photosVehicle:'صور المركبة',
+    areaLabel:'بيخدم منطقة', vehicleLabel:'المركبة', availLabel:'مواعيد التواجد', photosVehicle:'صورة المركبة',
     avail24:'متاح 24 ساعة', availNow:'متاح الآن', availUntil:'لحد', availSoon:'بيخلّص بعد', unavailNow:'مش متاح دلوقتي',
     availToday:'يتاح النهارده', availTomorrow:'يتاح بكرة', availOn:'يتاح',
     noAvailNow:'مفيش حد متاح دلوقتي هنا', noAvailNowHint:'جرّب تشيل فلتر "متاح الآن" وشوف الكل.',
@@ -894,7 +896,7 @@ const I18N = {
     techInfo:'-- Technical info --', versionLabel:'Version', pageLabel:'Page', deviceLabel:'Device', shopLabel:'Shop',
     verified:'Verified', providersCount:'providers', filterAll:'All', filterAvail:'Available now',
     svc_delivery:'Delivery', svc_tuktuk:'Tuk-tuk', svc_car:'Taxi & private car', svc_cargo:'Cargo & moving', svc_other:'Other services',
-    areaLabel:'Serves area', vehicleLabel:'Vehicle', availLabel:'Availability', photosVehicle:'Vehicle photos',
+    areaLabel:'Serves area', vehicleLabel:'Vehicle', availLabel:'Availability', photosVehicle:'Vehicle photo',
     avail24:'Available 24h', availNow:'Available now', availUntil:'until', availSoon:'ends in', unavailNow:'Not available now',
     availToday:'available today', availTomorrow:'available tomorrow', availOn:'available',
     noAvailNow:'Nobody is available right now', noAvailNowHint:'Try turning off the "Available now" filter to see everyone.',
@@ -1096,8 +1098,8 @@ function bindTilt(){
    renderers
    ========================================================= */
 function logoTile(s, cls){
-  const has = isImageUrl(s.logoUrl);
-  return `<div class="${cls}${has ? ' has-img' : ''}" style="background:${esc(s.color)}">${has ? `<img src="${esc(s.logoUrl)}" alt="" loading="lazy">` : esc(s.icon)}</div>`;
+  const src = isImageUrl(s.logoUrl) ? s.logoUrl : ((isSvc(s) && isImageUrl(s.menu[0])) ? s.menu[0] : null);
+  return `<div class="${cls}${src ? ' has-img' : ''}" style="background:${esc(s.color)}">${src ? `<img src="${esc(src)}" alt="" loading="lazy">` : esc(s.icon)}</div>`;
 }
 
 function applyStaticText(){
@@ -1414,7 +1416,7 @@ function renderShopDetail(id){
   lbColor = s.color;
   const c = esc(s.color);
   const dark = `color-mix(in srgb, ${c} 58%, #000)`;
-  const menuHTML = s.menu.length ? `
+  const menuHTML = (s.menu.length && !(isSvc(s) && !isImageUrl(s.logoUrl))) ? `
       <div class="ticket-divider d-anim" style="--d:3"><span class="dot"></span></div>
       <div class="d-anim" style="--d:4">
         <div class="mini-title">${t(isSvc(s) ? 'photosVehicle' : 'menuTitle')} <span class="mini-count">${s.menu.length}</span></div>
