@@ -392,7 +392,9 @@
   @keyframes themeReveal{from{clip-path:circle(0 at var(--tx,50%) var(--ty,0));}to{clip-path:circle(150vmax at var(--tx,50%) var(--ty,0));}}
 
   /* ---------- detail ---------- */
-  .detail-wrap{padding-bottom:120px;}
+  .detail-wrap{padding-bottom:8px;}
+  /* the fixed contact bar must never cover the support button / footer / version line */
+  body.in-detail .app{padding-bottom:118px;}
   .d-anim{animation:rise .65s var(--ease) backwards;animation-delay:calc(var(--d,0) * 75ms);}
   .detail-banner{
     position:relative;height:138px;border-radius:28px 28px 0 0;overflow:hidden;margin-top:14px;
@@ -525,6 +527,65 @@
   }
   .toast.show{opacity:1;transform:translate(-50%,0);}
 
+  /* ---------- support / contact ---------- */
+  .support-wrap{display:flex;justify-content:center;margin-top:40px;}
+  .support-btn{
+    display:inline-flex;align-items:center;gap:10px;
+    background:var(--paper);color:var(--ink);border:1px dashed var(--gold);border-radius:18px;
+    padding:12px 22px;font-family:inherit;font-weight:800;font-size:14px;cursor:pointer;
+    box-shadow:var(--shadow-sm);
+    transition:transform .3s var(--spring), box-shadow .3s ease, border-color .3s ease;
+  }
+  .support-btn svg{width:20px;height:20px;color:var(--red);}
+  .support-btn:hover{transform:translateY(-3px);box-shadow:var(--shadow-md);border-style:solid;}
+  .support-btn:active{transform:scale(.96);}
+  .credit{text-align:center;font-size:11px;color:var(--muted);margin-top:10px;letter-spacing:.2px;direction:ltr;opacity:.85;}
+
+  .sheet-overlay{
+    position:fixed;inset:0;z-index:1500;background:rgba(10,7,5,.55);
+    backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+    display:flex;align-items:flex-end;justify-content:center;
+    opacity:0;visibility:hidden;transition:opacity .3s ease, visibility 0s linear .3s;
+  }
+  .sheet-overlay.open{opacity:1;visibility:visible;transition:opacity .3s ease;}
+  .sheet{
+    position:relative;width:100%;max-width:520px;
+    background:var(--paper);border-radius:28px 28px 0 0;
+    padding:12px 18px calc(22px + env(safe-area-inset-bottom));
+    box-shadow:0 -20px 50px -12px rgba(0,0,0,.45);
+    transform:translateY(105%);transition:transform .5s var(--ease);
+  }
+  .sheet-overlay.open .sheet{transform:none;}
+  .sheet-handle{width:44px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 14px;}
+  .sheet-close{
+    position:absolute;top:14px;inset-inline-start:14px;width:34px;height:34px;border-radius:50%;
+    border:none;background:var(--cream);color:var(--muted);cursor:pointer;font-size:14px;
+    display:flex;align-items:center;justify-content:center;transition:transform .3s var(--spring);
+  }
+  .sheet-close:hover{transform:rotate(90deg);}
+  .sheet-title{font-size:23px;text-align:center;}
+  .sheet-sub{font-size:12.5px;color:var(--muted);text-align:center;margin:4px 8px 16px;line-height:1.6;}
+  .sheet-options{display:grid;gap:10px;}
+  .sheet-opt{
+    display:flex;align-items:center;gap:14px;padding:13px 14px;border-radius:18px;
+    background:var(--cream);border:1px solid var(--line);color:var(--ink);text-decoration:none;
+    transition:transform .3s var(--spring), border-color .2s ease, box-shadow .3s ease;
+  }
+  .sheet-opt:hover{transform:translateY(-2px);border-color:var(--gold);box-shadow:var(--shadow-sm);}
+  .sheet-opt:active{transform:scale(.98);}
+  .sheet-ico{
+    width:44px;height:44px;border-radius:14px;flex-shrink:0;color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 8px 16px -8px rgba(0,0,0,.5);
+  }
+  .sheet-ico svg{width:22px;height:22px;}
+  .sheet-opt .t{font-weight:800;font-size:15px;}
+  .sheet-opt .d{font-size:12px;color:var(--muted);margin-top:1px;}
+  .sheet-opt .go{margin-inline-start:auto;color:var(--muted);display:flex;}
+  .sheet-opt .go svg{width:18px;height:18px;}
+  [dir="ltr"] .sheet-opt .go svg{transform:scaleX(-1);}
+  body.sheet-open{overflow:hidden;}
+
   /* ---------- lightbox ---------- */
   .lightbox{
     position:fixed;inset:0;background:rgba(10,7,5,.84);
@@ -616,7 +677,7 @@
         <button class="icon-btn rip" id="soundBtn" type="button" title="Sound"><span class="ico">🔊</span></button>
         <button class="icon-btn rip" id="themeBtn" type="button" title="Theme"><span class="ico">🌙</span></button>
         <button class="icon-btn rip" id="langBtn" type="button" title="Language"><span class="ico">EN</span></button>
-        <a class="icon-btn rip" id="feedbackBox" href="#" target="_blank" rel="noopener"><span class="ico">💬</span></a>
+        <button class="icon-btn rip" id="feedbackBox" type="button"><span class="ico">💬</span></button>
       </div>
     </div>
   </header>
@@ -655,11 +716,25 @@
     </div>
   </main>
 
+  <div class="support-wrap">
+    <button class="support-btn rip" id="supportBtn" type="button"><span id="supportIcon"></span><span id="supportLabel"></span></button>
+  </div>
   <footer class="note" id="footerNote">دليلك — دليل مجاني لمحلات النزهة وقباء. التواصل والطلب بيتم مباشرة مع المحل.</footer>
+  <div class="credit" id="credit"></div>
 </div>
 
 <button class="fab rip" id="fab" type="button" aria-label="top">↑</button>
 <div class="toast" id="toast"></div>
+
+<div class="sheet-overlay" id="sheet">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <div class="sheet-handle"></div>
+    <button class="sheet-close" id="sheetClose" type="button" aria-label="close">✕</button>
+    <div class="sheet-title display" id="sheetTitle"></div>
+    <div class="sheet-sub" id="sheetSub"></div>
+    <div class="sheet-options" id="sheetOptions"></div>
+  </div>
+</div>
 
 <div class="lightbox" id="lightbox">
   <button class="lb-btn lb-close" id="lbClose" type="button" aria-label="close">✕</button>
@@ -674,6 +749,8 @@
    config + state
    ========================================================= */
 const FEEDBACK_WHATSAPP = '201022097217';
+const APP_VERSION = '1.0.0';            // bump this on every release
+const DEV_NAME = 'Mohamed Rwash';
 const SUPABASE_URL = 'https://nhtqdfnmdsrhbplfkdey.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_eFAzBTqbatLmZrUdkVWg9g_zk8bMcFD';
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -722,7 +799,16 @@ const I18N = {
     copied:'تم النسخ ✓', linkCopied:'تم نسخ الرابط ✓',
     footer:'دليلك — دليل مجاني لمحلات النزهة وقباء. التواصل والطلب بيتم مباشرة مع المحل.',
     feedbackTitle:'رأيك يهمّنا', feedbackMsg:'مرحبًا، عندي اقتراح/شكوى بخصوص تطبيق دليلك: ',
-    addShopMsg:'مرحبًا، عايز أضيف/أقترح محل في دليلك: '
+    addShopMsg:'مرحبًا، عايز أضيف/أقترح محل في دليلك: ',
+    supportBtn:'محتاج مساعدة؟ تواصل معنا', sheetTitle:'تواصل معنا',
+    sheetSub:'بنرد عليك على واتساب في أقرب وقت. هنضيف معلومات تقنية بسيطة (الإصدار والصفحة) عشان نحل المشكلة بسرعة.',
+    optProblem:'عندي مشكلة في الموقع', optProblemDesc:'حاجة مش شغالة أو شكلها غلط',
+    optOwner:'أنا صاحب محل', optOwnerDesc:'أضيف محلي أو أعدّل بياناته',
+    optIdea:'اقتراح أو شكوى', optIdeaDesc:'قولّنا رأيك أو حاجة ناقصة',
+    optCall:'اتصال تليفوني', optCallDesc:'لو الموضوع مستعجل',
+    msgProblem:'مرحبًا، عندي مشكلة في تطبيق دليلك:\n\n[اكتب المشكلة هنا]\n',
+    msgOwner:'مرحبًا، أنا صاحب محل وعايز أضيف/أعدّل بيانات محلي في دليلك.\n\nاسم المحل:\nالمطلوب:\n',
+    techInfo:'— معلومات تقنية —', versionLabel:'الإصدار', pageLabel:'الصفحة', deviceLabel:'الجهاز', shopLabel:'المحل'
   },
   en:{
     brandName:'Daleelak', brandSub:'Your neighborhood shop guide', area:'Nozha, Qubaa',
@@ -743,7 +829,16 @@ const I18N = {
     copied:'Copied ✓', linkCopied:'Link copied ✓',
     footer:'Daleelak — a free directory for Nozha and Qubaa shops. Contact and ordering happens directly with the shop.',
     feedbackTitle:'We\'d love your feedback', feedbackMsg:'Hi, I have a suggestion/complaint about the Daleelak app: ',
-    addShopMsg:'Hi, I want to add/suggest a shop on Daleelak: '
+    addShopMsg:'Hi, I want to add/suggest a shop on Daleelak: ',
+    supportBtn:'Need help? Contact us', sheetTitle:'Contact us',
+    sheetSub:'We reply on WhatsApp as soon as we can. We add a few technical details (version and page) to help us fix problems quickly.',
+    optProblem:'I have a problem with the site', optProblemDesc:'Something is broken or looks wrong',
+    optOwner:'I own a shop', optOwnerDesc:'Add my shop or edit its details',
+    optIdea:'Suggestion or complaint', optIdeaDesc:'Tell us what you think or what is missing',
+    optCall:'Phone call', optCallDesc:'If it is urgent',
+    msgProblem:'Hi, I have a problem with the Daleelak app:\n\n[describe the problem here]\n',
+    msgOwner:'Hi, I own a shop and I want to add/edit my shop details on Daleelak.\n\nShop name:\nWhat I need:\n',
+    techInfo:'-- Technical info --', versionLabel:'Version', pageLabel:'Page', deviceLabel:'Device', shopLabel:'Shop'
   }
 };
 const t = key => I18N[LANG][key];
@@ -951,9 +1046,11 @@ function applyStaticText(){
   $('footerNote').textContent = t('footer');
   $('searchInput').setAttribute('aria-label', t('searchPrefix'));
   $('listBack').innerHTML = ICON.back;
-  const fb = $('feedbackBox');
-  fb.title = t('feedbackTitle');
-  fb.href = waLink(FEEDBACK_WHATSAPP, t('feedbackMsg'));
+  $('feedbackBox').title = t('sheetTitle');
+  $('supportLabel').textContent = t('supportBtn');
+  $('supportIcon').innerHTML = ICON.chat;
+  $('credit').textContent = `Version ${APP_VERSION} · Developed by ${DEV_NAME}`;
+  if($('sheet').classList.contains('open')) renderSheet();
   $('langBtn').querySelector('.ico').textContent = LANG === 'ar' ? 'EN' : 'ع';
   $('themeBtn').querySelector('.ico').textContent = THEME === 'light' ? '🌙' : '☀️';
   $('soundBtn').querySelector('.ico').textContent = SOUND ? '🔊' : '🔇';
@@ -1527,6 +1624,58 @@ function armIntroSound(startedAt){
 }
 
 /* =========================================================
+   support / contact sheet
+   ========================================================= */
+Object.assign(ICON, {
+  wrench:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 005.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg>',
+  store:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9M3 9h18M5 9v11h14V9M10 20v-5h4v5"/></svg>',
+  bulb:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0012 3z"/></svg>'
+});
+
+/* small, readable summary that gets pasted into the WhatsApp message so a problem can be reproduced */
+function techInfo(){
+  const ua = navigator.userAgent || '';
+  const device = (/(iPhone|iPad|Android [\d.]+|Windows|Macintosh|Linux)/.exec(ua) || [])[1] || '?';
+  const browser = (/(Edg|CriOS|Chrome|FxiOS|Firefox|Safari)\/[\d.]+/.exec(ua) || [])[0] || '';
+  const lines = [t('techInfo'), `${t('versionLabel')}: ${APP_VERSION}`, `${t('pageLabel')}: ${location.href.slice(0, 200)}`, `${t('deviceLabel')}: ${device} ${browser}`.trim()];
+  const shop = currentView === 'detail' && SHOPS.find(x => x.id === currentShopId);
+  if(shop) lines.splice(1, 0, `${t('shopLabel')}: ${shop.name[LANG]}`);
+  return lines.join('\n');
+}
+
+function renderSheet(){
+  $('sheetTitle').textContent = t('sheetTitle');
+  $('sheetSub').textContent = t('sheetSub');
+  const opts = [
+    {ico:ICON.wrench, bg:'linear-gradient(135deg,#E9503F,#B52D21)', title:t('optProblem'), desc:t('optProblemDesc'), href:waLink(FEEDBACK_WHATSAPP, t('msgProblem') + '\n' + techInfo())},
+    {ico:ICON.store,  bg:'linear-gradient(135deg,#F0B559,#C98A25)', title:t('optOwner'),   desc:t('optOwnerDesc'),   href:waLink(FEEDBACK_WHATSAPP, t('msgOwner'))},
+    {ico:ICON.bulb,   bg:'linear-gradient(135deg,#34E07B,#1BAE55)', title:t('optIdea'),    desc:t('optIdeaDesc'),    href:waLink(FEEDBACK_WHATSAPP, t('feedbackMsg'))},
+    {ico:ICON.phone,  bg:'linear-gradient(135deg,#5B6B8C,#2F3B57)', title:t('optCall'),    desc:t('optCallDesc'),    href:'tel:+' + FEEDBACK_WHATSAPP, same:true}
+  ];
+  $('sheetOptions').innerHTML = opts.map(o => `
+    <a class="sheet-opt rip" href="${esc(o.href)}"${o.same ? '' : ' target="_blank" rel="noopener"'}>
+      <span class="sheet-ico" style="background:${o.bg}">${o.ico}</span>
+      <span><div class="t">${esc(o.title)}</div><div class="d">${esc(o.desc)}</div></span>
+      <span class="go">${ICON.chevron}</span>
+    </a>`).join('');
+}
+
+let sheetOpener = null;
+function openSheet(from){
+  sheetOpener = from || null;
+  renderSheet();
+  $('sheet').classList.add('open');
+  document.body.classList.add('sheet-open');
+  setTimeout(() => $('sheetClose').focus({preventScroll:true}), 60);
+}
+function closeSheet(){
+  $('sheet').classList.remove('open');
+  document.body.classList.remove('sheet-open');
+  if(sheetOpener && sheetOpener.focus) sheetOpener.focus({preventScroll:true});
+}
+document.addEventListener('keydown', e => { if(e.key === 'Escape' && $('sheet').classList.contains('open')) closeSheet(); });
+
+/* =========================================================
    lightbox
    ========================================================= */
 let lbItems = [], lbColor = '#D93829', lbIndex = 0;
@@ -1601,6 +1750,10 @@ $('listBack').addEventListener('click', goBack);
 $('openFilter').addEventListener('click', () => { onlyOpen = !onlyOpen; renderShopList({fast:true}); });
 $('searchInput').addEventListener('input', onSearchInput);
 $('sClear').addEventListener('click', clearSearch);
+$('feedbackBox').addEventListener('click', e => openSheet(e.currentTarget));
+$('supportBtn').addEventListener('click', e => openSheet(e.currentTarget));
+$('sheetClose').addEventListener('click', closeSheet);
+$('sheet').addEventListener('click', e => { if(e.target === $('sheet')) closeSheet(); });
 $('fab').addEventListener('click', () => window.scrollTo({top:0, behavior:'smooth'}));
 
 // restore saved prefs before first paint
