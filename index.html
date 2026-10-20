@@ -527,6 +527,47 @@
   }
   .toast.show{opacity:1;transform:translate(-50%,0);}
 
+  /* ---------- category glyphs + neighborhood services ---------- */
+  .cat-icon{height:46px;}
+  .cat-glyph{
+    width:46px;height:46px;border-radius:15px;display:flex;align-items:center;justify-content:center;
+    color:var(--ic,#D93829);
+    background:color-mix(in srgb, var(--ic,#D93829) 14%, transparent);
+    box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--ic,#D93829) 24%, transparent);
+  }
+  .cat-glyph svg{width:26px;height:26px;}
+  .shop-logo.avatar,.detail-logo.avatar{border-radius:50%;}
+  .verified-badge{
+    display:inline-flex;align-items:center;gap:4px;margin-inline-start:6px;vertical-align:middle;
+    background:rgba(46,125,91,.14);color:#2E7D5B;font-size:10.5px;font-weight:800;
+    padding:2px 8px;border-radius:10px;white-space:nowrap;font-family:'Tajawal',sans-serif;
+  }
+  .verified-badge svg{width:12px;height:12px;}
+  [data-theme="dark"] .verified-badge{background:rgba(95,214,160,.14);color:#5FD6A0;}
+  .type-chip{
+    display:inline-flex;align-items:center;gap:6px;margin-top:5px;font-size:12px;font-weight:700;
+    padding:3px 10px;border-radius:12px;background:var(--cream);border:1px solid var(--line);color:var(--ink);
+  }
+  .type-chip svg{width:14px;height:14px;color:var(--red);}
+  .svc-filter{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 12px;margin:-4px 0 4px;scrollbar-width:none;}
+  .svc-filter::-webkit-scrollbar{display:none;}
+  .svc-filter[hidden]{display:none;}
+  .svc-filter button{
+    flex-shrink:0;border:1px solid var(--line);background:var(--paper);color:var(--ink);
+    font-family:inherit;font-weight:700;font-size:13px;padding:7px 15px;border-radius:18px;cursor:pointer;
+    transition:transform .3s var(--spring), background .2s ease, color .2s ease, border-color .2s ease;
+  }
+  .svc-filter button:active{transform:scale(.94);}
+  .svc-filter button.on{background:var(--red);color:#fff;border-color:var(--red);}
+  .trust-card{margin-top:14px;padding:14px;border-radius:18px;background:var(--cream);border:1px solid var(--line);}
+  .trust-card.ok{border-color:rgba(46,125,91,.45);background:rgba(46,125,91,.07);}
+  .trust-head{display:flex;align-items:center;gap:10px;font-weight:800;font-size:14px;}
+  .trust-head svg{width:22px;height:22px;flex-shrink:0;color:#2E7D5B;}
+  .trust-card.warn .trust-head svg{color:var(--gold-dark);}
+  .trust-tip{font-size:12.5px;color:var(--muted);margin-top:6px;line-height:1.7;}
+  .trust-tip b{color:var(--ink);}
+  .trust-report{margin-top:10px;display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:var(--red);text-decoration:none;}
+
   /* ---------- support / contact ---------- */
   .support-wrap{display:flex;justify-content:center;margin-top:40px;}
   .support-btn{
@@ -708,6 +749,7 @@
         <span class="list-title-wrap"><span id="listTitle"></span><span class="list-count" id="listCount"></span></span>
       </div>
       <div class="filter-bar" id="filterBar" hidden><button class="filter-chip rip" id="openFilter" type="button"></button></div>
+      <div class="svc-filter" id="svcFilter" hidden></div>
       <div class="shop-list" id="shopList"></div>
     </div>
 
@@ -808,7 +850,18 @@ const I18N = {
     optCall:'اتصال تليفوني', optCallDesc:'لو الموضوع مستعجل',
     msgProblem:'مرحبًا، عندي مشكلة في تطبيق دليلك:\n\n[اكتب المشكلة هنا]\n',
     msgOwner:'مرحبًا، أنا صاحب محل وعايز أضيف/أعدّل بيانات محلي في دليلك.\n\nاسم المحل:\nالمطلوب:\n',
-    techInfo:'— معلومات تقنية —', versionLabel:'الإصدار', pageLabel:'الصفحة', deviceLabel:'الجهاز', shopLabel:'المحل'
+    techInfo:'— معلومات تقنية —', versionLabel:'الإصدار', pageLabel:'الصفحة', deviceLabel:'الجهاز', shopLabel:'المحل',
+    verified:'موثّق', providersCount:'مقدّم خدمة', filterAll:'الكل', filterAvail:'متاح الآن',
+    svc_delivery:'توصيل طلبات', svc_tuktuk:'توك توك', svc_car:'تاكسي وملاكي', svc_cargo:'شحن ونقل', svc_other:'خدمات تانية',
+    areaLabel:'بيخدم منطقة', vehicleLabel:'المركبة', availLabel:'مواعيد التواجد', photosVehicle:'صور المركبة',
+    avail24:'متاح 24 ساعة', availNow:'متاح الآن', availUntil:'لحد', availSoon:'بيخلّص بعد', unavailNow:'مش متاح دلوقتي',
+    availToday:'يتاح النهارده', availTomorrow:'يتاح بكرة', availOn:'يتاح',
+    noAvailNow:'مفيش حد متاح دلوقتي هنا', noAvailNowHint:'جرّب تشيل فلتر "متاح الآن" وشوف الكل.',
+    trustTitle:'الأمان والثقة', trustVerified:'موثّق من دليلك — اتأكدنا من رقمه وهويته.', trustUnverified:'لسه ماتوثقش من دليلك — اتأكد من الخدمة بنفسك.',
+    trustTip:'اتفق على السعر قبل ما تتحرك، ولو حسّيت بأي حاجة غريبة بلّغنا.', reportProvider:'بلّغ عن مشكلة مع مقدّم الخدمة',
+    msgReportProvider:'مرحبًا، عايز أبلّغ عن مشكلة مع مقدّم خدمة في دليلك:',
+    optJoin:'أنا مقدّم خدمة', optJoinDesc:'توصيل، توك توك، تاكسي أو شحن',
+    msgJoin:'مرحبًا، أنا مقدّم خدمة وعايز أنضم لدليلك.\n\nالاسم:\nنوع الخدمة (توصيل / توك توك / تاكسي / شحن):\nالمنطقة اللي بخدمها:\nالمركبة:\n'
   },
   en:{
     brandName:'Daleelak', brandSub:'Your neighborhood shop guide', area:'Nozha, Qubaa',
@@ -838,7 +891,18 @@ const I18N = {
     optCall:'Phone call', optCallDesc:'If it is urgent',
     msgProblem:'Hi, I have a problem with the Daleelak app:\n\n[describe the problem here]\n',
     msgOwner:'Hi, I own a shop and I want to add/edit my shop details on Daleelak.\n\nShop name:\nWhat I need:\n',
-    techInfo:'-- Technical info --', versionLabel:'Version', pageLabel:'Page', deviceLabel:'Device', shopLabel:'Shop'
+    techInfo:'-- Technical info --', versionLabel:'Version', pageLabel:'Page', deviceLabel:'Device', shopLabel:'Shop',
+    verified:'Verified', providersCount:'providers', filterAll:'All', filterAvail:'Available now',
+    svc_delivery:'Delivery', svc_tuktuk:'Tuk-tuk', svc_car:'Taxi & private car', svc_cargo:'Cargo & moving', svc_other:'Other services',
+    areaLabel:'Serves area', vehicleLabel:'Vehicle', availLabel:'Availability', photosVehicle:'Vehicle photos',
+    avail24:'Available 24h', availNow:'Available now', availUntil:'until', availSoon:'ends in', unavailNow:'Not available now',
+    availToday:'available today', availTomorrow:'available tomorrow', availOn:'available',
+    noAvailNow:'Nobody is available right now', noAvailNowHint:'Try turning off the "Available now" filter to see everyone.',
+    trustTitle:'Safety & trust', trustVerified:'Verified by Daleelak — we checked their number and identity.', trustUnverified:'Not verified by Daleelak yet — check the service yourself.',
+    trustTip:'Agree on the price before you go, and tell us if anything feels off.', reportProvider:'Report a problem with this provider',
+    msgReportProvider:'Hi, I want to report a problem with a service provider on Daleelak:',
+    optJoin:'I offer a service', optJoinDesc:'Delivery, tuk-tuk, taxi or cargo',
+    msgJoin:'Hi, I offer a service and I want to join Daleelak.\n\nName:\nService (delivery / tuk-tuk / taxi / cargo):\nArea I cover:\nVehicle:\n'
   }
 };
 const t = key => I18N[LANG][key];
@@ -941,7 +1005,8 @@ async function loadData(){
       address:{ar:x.address || '', en:x.address || ''},
       phone:x.phone || '', whatsapp:x.whatsapp || x.phone || '',
       mapUrl:x.map_url || '', menu:Array.isArray(x.menu_images) ? x.menu_images.filter(Boolean) : [],
-      hours:(x.hours && typeof x.hours === 'object') ? x.hours : null
+      hours:(x.hours && typeof x.hours === 'object') ? x.hours : null,
+      kind:x.kind === 'service' ? 'service' : 'shop', serviceType:x.service_type || '', area:x.area || '', vehicle:x.vehicle || '', verified:!!x.verified
     }));
     // paying shops first; inside each group keep the order they were added
     SHOPS.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
@@ -1074,13 +1139,13 @@ function renderCats(){
   if(loadFailed){ grid.innerHTML = errorStateHTML(); return; }
   grid.innerHTML = CATS.map((c, i) => {
     const n = SHOPS.filter(s => s.catId === c.id).length;
-    const icon = isImageUrl(c.imageUrl) ? `<img src="${esc(c.imageUrl)}" alt="">` : esc(c.icon);
+    const icon = catIconHTML(c);
     return c.active
       ? `<div class="cat-card live rip reveal" style="--i:${Math.min(i,12)}" role="button" tabindex="0" onclick="openCategory('${esc(c.id)}')">
            <i class="live-dot"></i>
            <div class="cat-icon">${icon}</div>
            <div class="cat-label">${esc(c.label[LANG])}</div>
-           <div class="cat-count"><span class="count" data-to="${n}">${n}</span> ${t('shopsCount')}</div>
+           <div class="cat-count"><span class="count" data-to="${n}">${n}</span> ${catCountLabel(c.id)}</div>
          </div>`
       : `<div class="cat-card soon reveal" style="--i:${Math.min(i,12)}">
            <div class="soon-badge">${t('comingSoon')}</div>
@@ -1159,16 +1224,17 @@ function hoursStatus(hours){
 function openChip(s){
   const st = hoursStatus(s.hours);
   if(!st) return null;
-  if(st.always) return {open:true, cls:'ok', text:t('open24')};
+  const sv = isSvc(s);   // people say "available", shops say "open"
+  if(st.always) return {open:true, cls:'ok', text:t(sv ? 'avail24' : 'open24')};
   if(st.open){
-    if(st.closesIn <= 60) return {open:true, cls:'soon', text:`${t('closesSoon')} ${st.closesIn} ${t('minShort')}`};
-    return {open:true, cls:'ok', text:`${t('openNow')} · ${t('closesAt')} ${fmtTime(st.closesAt)}`};
+    if(st.closesIn <= 60) return {open:true, cls:'soon', text:`${t(sv ? 'availSoon' : 'closesSoon')} ${st.closesIn} ${t('minShort')}`};
+    return {open:true, cls:'ok', text:`${t(sv ? 'availNow' : 'openNow')} · ${t(sv ? 'availUntil' : 'closesAt')} ${fmtTime(st.closesAt)}`};
   }
-  if(!st.opensAt) return {open:false, cls:'closed', text:t('closedNow')};
-  const when = st.dayOffset === 0 ? t('opensToday')
-             : st.dayOffset === 1 ? t('opensTomorrow')
-             : `${t('opens')} ${t('dayNames')[st.opensDay]}`;
-  return {open:false, cls:'closed', text:`${t('closedNow')} · ${when} ${fmtTime(st.opensAt)}`};
+  if(!st.opensAt) return {open:false, cls:'closed', text:t(sv ? 'unavailNow' : 'closedNow')};
+  const when = st.dayOffset === 0 ? t(sv ? 'availToday' : 'opensToday')
+             : st.dayOffset === 1 ? t(sv ? 'availTomorrow' : 'opensTomorrow')
+             : `${t(sv ? 'availOn' : 'opens')} ${t('dayNames')[st.opensDay]}`;
+  return {open:false, cls:'closed', text:`${t(sv ? 'unavailNow' : 'closedNow')} · ${when} ${fmtTime(st.opensAt)}`};
 }
 
 function openChipHTML(s){
@@ -1199,16 +1265,81 @@ function refreshOpenChips(){
   if(onlyOpen && currentView === 'list') renderShopList({fast:true});
 }
 
+/* =========================================================
+   category glyphs + neighborhood services (people, not shops)
+   ========================================================= */
+/* Category / service / UI icons: Lucide (https://lucide.dev), ISC License, (c) Lucide Icons and Contributors */
+const CAT_ICONS = {
+  food:{c:'#D93829',p:'<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>'},
+  cafe:{c:'#8B5A2B',p:'<path d="M10 2v2"/><path d="M14 2v2"/><path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1"/><path d="M6 2v2"/>'},
+  bakery:{c:'#E0457B',p:'<path d="M16 13H3"/><path d="M16 17H3"/><path d="m7.2 7.9-3.388 2.5A2 2 0 0 0 3 12.01V20a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-8.654c0-2-2.44-6.026-6.44-8.026a1 1 0 0 0-1.082.057L10.4 5.6"/><circle cx="9" cy="7" r="2"/>'},
+  market:{c:'#2E9B5B',p:'<path d="m2.05 2.05 1.099-.028a1 1 0 0 1 1.008.815l2.69 14.347A1 1 0 0 0 7.83 18H18"/><path d="M4.563 5h16.435a1 1 0 0 1 .981 1.204l-1.026 6.226A2 2 0 0 1 18.962 14H6.25"/><circle cx="18" cy="20" r="2"/><circle cx="8" cy="20" r="2"/>'},
+  pharmacy:{c:'#0E9F8E',p:'<path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/>'},
+  clinic:{c:'#2F7CE0',p:'<path d="M11 2v2"/><path d="M5 2v2"/><path d="M5 3H4a2 2 0 0 0-2 2v4a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1"/><path d="M8 15a6 6 0 0 0 12 0v-3"/><circle cx="20" cy="10" r="2"/>'},
+  clothing:{c:'#7A4EC9',p:'<path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/>'},
+  retail:{c:'#E8873D',p:'<path d="M16 10a4 4 0 0 1-8 0"/><path d="M3.103 6.034h17.794"/><path d="M3.4 5.467a2 2 0 0 0-.4 1.2V20a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6.667a2 2 0 0 0-.4-1.2l-2-2.667A2 2 0 0 0 17 2H7a2 2 0 0 0-1.6.8z"/>'},
+  workshops:{c:'#5B6B8C',p:'<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z"/>'},
+  services:{c:'#D4A017',p:'<path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3 1 11h-2"/><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/><path d="M3 4h8"/>'},
+  transport:{c:'#1E8BC3',p:'<circle cx="18.5" cy="17.5" r="3.5"/><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="15" cy="5" r="1"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/>'}
+};
+const SVC_ICONS = {
+  delivery:'<path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><polyline points="3.29 7 12 12 20.71 7"/><path d="m7.5 4.27 9 5.15"/>',
+  tuktuk:'<path d="M21 4h-3.5l2 11.05"/><path d="M6.95 17h5.142c.523 0 .95-.406 1.063-.916a6.5 6.5 0 0 1 5.345-5.009"/><circle cx="19.5" cy="17.5" r="2.5"/><circle cx="4.5" cy="17.5" r="2.5"/>',
+  car:'<path d="M10 2h4"/><path d="m21 8-2 2-1.5-3.7A2 2 0 0 0 15.646 5H8.4a2 2 0 0 0-1.903 1.257L5 10 3 8"/><path d="M7 14h.01"/><path d="M17 14h.01"/><rect width="18" height="8" x="3" y="10" rx="2"/><path d="M5 18v2"/><path d="M19 18v2"/>',
+  cargo:'<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/>',
+  other:'<path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3 1 11h-2"/><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/><path d="M3 4h8"/>'
+};
+const LUCIDE_UI = {
+  shieldCheck:'<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
+  shieldAlert:'<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/>',
+  badgeCheck:'<path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m16 9-5.5 5.5L8 12"/>',
+  alert:'<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+  bike:'<circle cx="18.5" cy="17.5" r="3.5"/><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="15" cy="5" r="1"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/>'
+};
+
+const SVC_TYPES = ['delivery', 'tuktuk', 'car', 'cargo', 'other'];
+const isSvc = s => s.kind === 'service';
+function lucideSvg(inner, sw){
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw || 2}" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+}
+ICON.bike = lucideSvg(LUCIDE_UI.bike);
+
+/* uploaded image wins; then the coloured Lucide glyph; custom categories fall back to their emoji */
+function catIconHTML(c){
+  if(isImageUrl(c.imageUrl)) return `<img src="${esc(c.imageUrl)}" alt="">`;
+  const d = CAT_ICONS[c.id];
+  return d ? `<span class="cat-glyph" style="--ic:${d.c}">${lucideSvg(d.p, 1.8)}</span>` : esc(c.icon);
+}
+function catCountLabel(catId){
+  const list = SHOPS.filter(s => s.catId === catId);
+  return list.length && list.every(isSvc) ? t('providersCount') : t('shopsCount');
+}
+const svcTypeLabel = k => (k && t('svc_' + k)) || '';
+function svcTypeChipHTML(s){
+  if(!s.serviceType) return '';
+  return `<div class="type-chip">${lucideSvg(SVC_ICONS[s.serviceType] || SVC_ICONS.other)}${esc(svcTypeLabel(s.serviceType))}</div>`;
+}
+function verifiedBadgeHTML(s){
+  return s.verified ? `<span class="verified-badge">${lucideSvg(LUCIDE_UI.badgeCheck, 2.4)}${t('verified')}</span>` : '';
+}
+function reportProviderMsg(s){
+  return `${t('msgReportProvider')}\n${s.name[LANG]}\n${location.href.split('#')[0]}#shop=${s.id}\n\n[...]\n`;
+}
+
 function shopCardHTML(s, i, opts){
   opts = opts || {};
   const q = opts.q || '';
+  const sv = isSvc(s);
+  const where = sv
+    ? svcTypeChipHTML(s) + (s.area ? `<div class="shop-addr">${ICON.pin}<span>${hl(s.area, q)}</span></div>` : '')
+    : `<div class="shop-addr">${ICON.pin}<span>${hl(s.address[LANG], q)}</span></div>`;
   return `
-    <div class="shop-card rip reveal${opts.fast ? ' in fast' : ''}" style="--i:${Math.min(i,10)}" role="button" tabindex="0" onclick="openShop('${esc(s.id)}')">
-      ${logoTile(s, 'shop-logo')}
+    <div class="shop-card${sv ? ' svc' : ''} rip reveal${opts.fast ? ' in fast' : ''}" style="--i:${Math.min(i,10)}" role="button" tabindex="0" onclick="openShop('${esc(s.id)}')">
+      ${logoTile(s, 'shop-logo' + (sv ? ' avatar' : ''))}
       <div class="shop-info">
-        <div class="shop-name">${hl(s.name[LANG], q)}${s.featured ? ` <span class="feat-badge">⭐ ${t('featuredBadge')}</span>` : ''}</div>
+        <div class="shop-name">${hl(s.name[LANG], q)}${s.featured ? ` <span class="feat-badge">⭐ ${t('featuredBadge')}</span>` : ''}${verifiedBadgeHTML(s)}</div>
         <div class="shop-tag">${hl(s.tag[LANG], q)}</div>
-        <div class="shop-addr">${ICON.pin}<span>${hl(s.address[LANG], q)}</span></div>
+        ${where}
         ${openChipHTML(s)}
       </div>
       <div class="chevron">${ICON.chevron}</div>
@@ -1220,8 +1351,9 @@ function renderFeatured(){
   if(loading){ return; }
   if(loadFailed){ box.innerHTML = ''; return; }
   // paying shops first (they carry the badge), then the newest ones
-  const newest = SHOPS.filter(s => !s.featured).sort((a, b) => b.created.localeCompare(a.created));
-  const list = SHOPS.filter(s => s.featured).concat(newest).slice(0, 4);
+  const only = SHOPS.filter(s => !isSvc(s));
+  const newest = only.filter(s => !s.featured).sort((a, b) => b.created.localeCompare(a.created));
+  const list = only.filter(s => s.featured).concat(newest).slice(0, 4);
   box.innerHTML = list.map((s, i) => shopCardHTML(s, i)).join('');
   observeReveals(box);
 }
@@ -1230,28 +1362,46 @@ function noResultsHTML(){
   return `<div class="state-card"><div class="state-emoji">🔎</div><div class="state-title">${t('noResults')}</div><div class="state-hint">${t('noResultsHint')}</div><a class="state-btn rip" target="_blank" rel="noopener" href="${waLink(FEEDBACK_WHATSAPP, t('addShopMsg'))}">${ICON.chat.replace('<svg','<svg width="18" height="18"')} ${t('tellUs')}</a></div>`;
 }
 
+let svcTypeFilter = 'all';
 function renderShopList(opts){
   opts = opts || {};
   const title = $('listTitle'), count = $('listCount'), box = $('shopList');
   let shops;
   if(searchQuery){
     title.textContent = `${t('searchResultsFor')} "${searchQuery}"`;
-    shops = SHOPS.filter(s => [s.name[LANG], s.tag[LANG], s.address[LANG]].join(' ').toLowerCase().includes(searchQuery.toLowerCase()));
+    const q = searchQuery.toLowerCase();
+    shops = SHOPS.filter(s => [s.name[LANG], s.tag[LANG], s.address[LANG], s.area, s.vehicle, isSvc(s) ? svcTypeLabel(s.serviceType) : ''].join(' ').toLowerCase().includes(q));
   } else {
     const cat = CATS.find(c => c.id === currentCatId);
     title.textContent = cat ? cat.label[LANG] : '';
     shops = SHOPS.filter(s => s.catId === currentCatId);
   }
-  $('filterBar').hidden = !SHOPS.some(s => s.hours);
+  const allSvc = shops.length > 0 && shops.every(isSvc);
+
+  // type chips (Delivery / Tuk-tuk / Taxi ...) when browsing a list made of providers
+  const sf = $('svcFilter');
+  const types = allSvc && !searchQuery ? SVC_TYPES.filter(k => shops.some(s => s.serviceType === k)) : [];
+  if(svcTypeFilter !== 'all' && !types.includes(svcTypeFilter)) svcTypeFilter = 'all';
+  sf.hidden = types.length < 2;
+  if(!sf.hidden){
+    sf.innerHTML = [['all', t('filterAll')]].concat(types.map(k => [k, svcTypeLabel(k)]))
+      .map(([k, label]) => `<button type="button" class="${svcTypeFilter === k ? 'on' : ''}" data-k="${k}">${esc(label)}</button>`).join('');
+    if(svcTypeFilter !== 'all') shops = shops.filter(s => s.serviceType === svcTypeFilter);
+  }
+
+  // "open now" / "available now" filter: only when somebody in this list has hours
+  $('filterBar').hidden = !shops.some(s => s.hours);
+  if($('filterBar').hidden) onlyOpen = false;
   const fbtn = $('openFilter');
-  fbtn.textContent = t('filterOpen');
+  fbtn.textContent = t(allSvc ? 'filterAvail' : 'filterOpen');
   fbtn.classList.toggle('on', onlyOpen);
   if(onlyOpen) shops = shops.filter(s => { const st = hoursStatus(s.hours); return !!(st && st.open); });
-  count.textContent = shops.length ? `${shops.length} ${searchQuery ? t('resultsCount') : t('shopsCount')}` : '';
+
+  count.textContent = shops.length ? `${shops.length} ${searchQuery ? t('resultsCount') : (allSvc ? t('providersCount') : t('shopsCount'))}` : '';
   box.innerHTML = shops.length
     ? shops.map((s, i) => shopCardHTML(s, i, {q:searchQuery, fast:opts.fast})).join('')
     : (onlyOpen
-        ? `<div class="state-card"><div class="state-emoji">🌙</div><div class="state-title">${t('noOpenNow')}</div><div class="state-hint">${t('noOpenNowHint')}</div></div>`
+        ? `<div class="state-card"><div class="state-emoji">🌙</div><div class="state-title">${t(allSvc ? 'noAvailNow' : 'noOpenNow')}</div><div class="state-hint">${t(allSvc ? 'noAvailNowHint' : 'noOpenNowHint')}</div></div>`
         : noResultsHTML());
   observeReveals(box);
   if(searchQuery) trackSearch();
@@ -1267,7 +1417,7 @@ function renderShopDetail(id){
   const menuHTML = s.menu.length ? `
       <div class="ticket-divider d-anim" style="--d:3"><span class="dot"></span></div>
       <div class="d-anim" style="--d:4">
-        <div class="mini-title">${t('menuTitle')} <span class="mini-count">${s.menu.length}</span></div>
+        <div class="mini-title">${t(isSvc(s) ? 'photosVehicle' : 'menuTitle')} <span class="mini-count">${s.menu.length}</span></div>
         <div class="menu-strip">
           ${s.menu.map((m, i) => isImageUrl(m)
             ? `<div class="menu-photo" style="background:${c}" onclick="openLightbox(${i})"><img src="${esc(m)}" alt="" loading="lazy"><span class="zoom">⤢</span></div>`
@@ -1283,12 +1433,22 @@ function renderShopDetail(id){
           <div class="info-icon">${ICON.pin}</div>
           <div class="info-text"><div class="info-label">${t('addressLabel')}</div>${esc(s.address[LANG])}</div>
         </div>`;
+  const sv = isSvc(s);
+  const svcRows = `
+          ${s.area ? `<div class="info-row d-anim" style="--d:6"><div class="info-icon">${ICON.pin}</div><div class="info-text"><div class="info-label">${t('areaLabel')}</div>${esc(s.area)}</div></div>` : ''}
+          ${s.vehicle ? `<div class="info-row d-anim" style="--d:6"><div class="info-icon">${lucideSvg(SVC_ICONS[s.serviceType] || SVC_ICONS.other)}</div><div class="info-text"><div class="info-label">${t('vehicleLabel')}</div>${esc(s.vehicle)}</div></div>` : ''}`;
+  const trustHTML = sv ? `
+          <div class="trust-card d-anim ${s.verified ? 'ok' : 'warn'}" style="--d:9">
+            <div class="trust-head">${lucideSvg(s.verified ? LUCIDE_UI.shieldCheck : LUCIDE_UI.shieldAlert, 2.2)}<span>${t('trustTitle')}</span></div>
+            <div class="trust-tip"><b>${t(s.verified ? 'trustVerified' : 'trustUnverified')}</b><br>${t('trustTip')}</div>
+            <a class="trust-report rip" target="_blank" rel="noopener" href="${waLink(FEEDBACK_WHATSAPP, reportProviderMsg(s))}">${lucideSvg(LUCIDE_UI.alert, 2.2).replace('<svg', '<svg width="16" height="16"')} ${t('reportProvider')}</a>
+          </div>` : '';
   const chip = openChip(s);
   const hoursRow = chip ? `
           <div class="info-row tap d-anim" style="--d:7" onclick="this.classList.toggle('open')">
             <div class="info-icon">${ICON.clock}</div>
             <div class="info-text">
-              <div class="info-label">${t('hoursLabel')}</div>
+              <div class="info-label">${t(sv ? 'availLabel' : 'hoursLabel')}</div>
               <div class="open-chip ${chip.cls}" data-shop="${esc(s.id)}"><i></i>${esc(chip.text)}</div>
               <div class="info-hint">${t('showWeek')} ▾</div>
               <div class="hours-list">${weekRowsHTML(s)}</div>
@@ -1308,26 +1468,27 @@ function renderShopDetail(id){
       <div class="detail-hero d-anim" style="--d:1">
         <div class="detail-body">
           <div class="detail-top">
-            ${logoTile(s, 'detail-logo')}
+            ${logoTile(s, 'detail-logo' + (sv ? ' avatar' : ''))}
             <div class="detail-head d-anim" style="--d:2">
-              <div class="detail-name display">${esc(s.name[LANG])}${s.featured ? ` <span class="feat-badge">⭐ ${t('featuredBadge')}</span>` : ''}</div>
-              <div class="detail-tag">${esc(s.tag[LANG])}</div>
+              <div class="detail-name display">${esc(s.name[LANG])}${s.featured ? ` <span class="feat-badge">⭐ ${t('featuredBadge')}</span>` : ''}${verifiedBadgeHTML(s)}</div>
+              <div class="detail-tag">${esc(s.tag[LANG])}</div>${sv ? svcTypeChipHTML(s) : ''}
             </div>
           </div>
           ${menuHTML}
           <div class="ticket-divider d-anim" style="--d:5"><span class="dot"></span></div>
-          ${mapRow}
+          ${sv ? svcRows : mapRow}
           ${hoursRow}
           <div class="info-row tap d-anim" style="--d:8" onclick="copyText('${esc(s.phone)}')">
             <div class="info-icon">${ICON.phone}</div>
             <div class="info-text"><div class="info-label">${t('phoneLabel')}</div><span dir="ltr">${esc(s.phone)}</span><div class="info-hint">${t('tapCopy')}</div></div>
           </div>
+          ${trustHTML}
         </div>
       </div>
       <div class="action-bar">
         <a class="btn btn-call rip" data-track="call" href="tel:${esc(s.phone)}">${ICON.phone} ${t('call')}</a>
         <a class="btn btn-whatsapp rip" data-track="whatsapp" href="${waLink(esc(s.whatsapp))}" target="_blank" rel="noopener">${ICON.chat} ${t('whatsapp')}</a>
-        ${s.mapUrl ? `<a class="btn btn-map rip" data-track="map" href="${esc(s.mapUrl)}" target="_blank" rel="noopener">${ICON.pin} ${t('map')}</a>` : ''}
+        ${(!sv && s.mapUrl) ? `<a class="btn btn-map rip" data-track="map" href="${esc(s.mapUrl)}" target="_blank" rel="noopener">${ICON.pin} ${t('map')}</a>` : ''}
       </div>
     </div>`;
 }
@@ -1397,7 +1558,7 @@ function setActiveView(id){
 function applyState(s){
   if(s.v === 'cat'){
     currentView = 'list'; searchQuery = ''; $('searchInput').value = ''; updateClear();
-    currentCatId = s.id; lastListContext = {type:'category', id:s.id};
+    currentCatId = s.id; lastListContext = {type:'category', id:s.id}; svcTypeFilter = 'all';
     renderShopList(); return 'view-list';
   }
   if(s.v === 'search'){
@@ -1650,6 +1811,7 @@ function renderSheet(){
     {ico:ICON.wrench, bg:'linear-gradient(135deg,#E9503F,#B52D21)', title:t('optProblem'), desc:t('optProblemDesc'), href:waLink(FEEDBACK_WHATSAPP, t('msgProblem') + '\n' + techInfo())},
     {ico:ICON.store,  bg:'linear-gradient(135deg,#F0B559,#C98A25)', title:t('optOwner'),   desc:t('optOwnerDesc'),   href:waLink(FEEDBACK_WHATSAPP, t('msgOwner'))},
     {ico:ICON.bulb,   bg:'linear-gradient(135deg,#34E07B,#1BAE55)', title:t('optIdea'),    desc:t('optIdeaDesc'),    href:waLink(FEEDBACK_WHATSAPP, t('feedbackMsg'))},
+    {ico:ICON.bike,   bg:'linear-gradient(135deg,#1E8BC3,#0F5E8C)', title:t('optJoin'), desc:t('optJoinDesc'), href:waLink(FEEDBACK_WHATSAPP, t('msgJoin'))},
     {ico:ICON.phone,  bg:'linear-gradient(135deg,#5B6B8C,#2F3B57)', title:t('optCall'),    desc:t('optCallDesc'),    href:'tel:+' + FEEDBACK_WHATSAPP, same:true}
   ];
   $('sheetOptions').innerHTML = opts.map(o => `
@@ -1748,6 +1910,12 @@ $('themeBtn').addEventListener('click', toggleTheme);
 $('langBtn').addEventListener('click', toggleLang);
 $('listBack').addEventListener('click', goBack);
 $('openFilter').addEventListener('click', () => { onlyOpen = !onlyOpen; renderShopList({fast:true}); });
+$('svcFilter').addEventListener('click', e => {
+  const b = e.target.closest('button[data-k]');
+  if(!b) return;
+  svcTypeFilter = b.dataset.k;
+  renderShopList({fast:true});
+});
 $('searchInput').addEventListener('input', onSearchInput);
 $('sClear').addEventListener('click', clearSearch);
 $('feedbackBox').addEventListener('click', e => openSheet(e.currentTarget));

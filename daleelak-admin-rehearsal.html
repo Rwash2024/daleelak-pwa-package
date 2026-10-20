@@ -227,13 +227,22 @@
     <h3 id="modalTitle">إضافة محل جديد</h3>
     <div class="hint">البيانات دي هتظهر لكل العملاء في صفحة "دليلك"</div>
 
+    <div class="field-group" id="kindGroup" style="display:none;">
+      <label>بتضيف إيه؟</label>
+      <select id="f_kind" onchange="updateKindUI()">
+        <option value="shop">محل (مطعم، صيدلية، كافيه...)</option>
+        <option value="service">خدمة / شخص (توصيل، توك توك، تاكسي، شحن)</option>
+      </select>
+    </div>
+    <div class="hint" id="servicesUnsupported" style="display:none;">إضافة الخدمات لسه مش مفعّلة — شغّل ملف 05_services.sql في Supabase.</div>
+
     <div class="field-row">
       <div class="field-group">
-        <label>اسم المحل (عربي)</label>
+        <label id="lbl_name_ar">اسم المحل (عربي)</label>
         <input id="f_name_ar" placeholder="مطعم الأصيل">
       </div>
       <div class="field-group">
-        <label>Shop name (English)</label>
+        <label id="lbl_name_en">Shop name (English)</label>
         <input id="f_name_en" placeholder="Al Aseel Restaurant">
       </div>
     </div>
@@ -243,13 +252,51 @@
       <select id="f_category"></select>
     </div>
 
+    <div id="serviceFields" style="display:none;">
+      <div class="field-row">
+        <div class="field-group">
+          <label>نوع الخدمة</label>
+          <select id="f_svc_type">
+            <option value="delivery">توصيل طلبات</option>
+            <option value="tuktuk">توك توك</option>
+            <option value="car">تاكسي وملاكي</option>
+            <option value="cargo">شحن ونقل</option>
+            <option value="other">خدمات تانية</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label>المنطقة اللي بيخدمها</label>
+          <input id="f_area" placeholder="النزهة وقباء">
+        </div>
+      </div>
+      <div class="field-group">
+        <label>المركبة</label>
+        <input id="f_vehicle" placeholder="مثال: توك توك أحمر / دراجة بخارية / تويوتا ملاكي">
+      </div>
+      <div class="field-group" style="background:var(--cream);border:1px solid var(--line);border-radius:12px;padding:12px;">
+        <label style="display:flex;gap:8px;align-items:center;color:var(--ink);font-weight:700;font-size:13px;margin:0;">
+          <input type="checkbox" id="f_consent" style="width:auto;"> وافق إن رقمه ومعلوماته تتنشر في الموقع <span style="color:var(--danger);">(إجباري)</span>
+        </label>
+        <label style="display:flex;gap:8px;align-items:center;color:var(--ink);font-weight:700;font-size:13px;margin:10px 0 0;">
+          <input type="checkbox" id="f_verified" style="width:auto;"> ✓ موثّق — قابلته واتأكدت من رقمه وهويته
+        </label>
+        <label style="margin-top:10px;">ملاحظات التحقق (خاصة بيك — مش بتظهر لأي حد)</label>
+        <textarea id="f_verified_note" placeholder="مثال: قابلته يوم 15/10 وشفت البطاقة. الأفضل ماتكتبش رقم البطاقة كامل."></textarea>
+      </div>
+    </div>
+    <div class="field-group" id="suspendGroup" style="display:none;">
+      <label style="display:flex;gap:8px;align-items:center;color:var(--danger);font-weight:700;font-size:13px;margin:0;">
+        <input type="checkbox" id="f_suspended" style="width:auto;"> إخفاء مؤقت من الموقع (موقوف) — يرجع بإلغاء العلامة
+      </label>
+    </div>
+
     <div class="field-group">
-      <label>وصف قصير / نوع الأكل</label>
+      <label id="lbl_tag">وصف قصير / نوع الأكل</label>
       <input id="f_tag_ar" placeholder="مثال: أكل شعبي — كشري وفول">
     </div>
 
     <div class="field-group">
-      <label>العنوان</label>
+      <label id="lbl_address">العنوان</label>
       <textarea id="f_address"></textarea>
     </div>
 
@@ -265,7 +312,7 @@
       </div>
     </div>
 
-    <div class="field-group">
+    <div class="field-group" id="mapGroup">
       <label>لينك اللوكيشن (Google Maps)</label>
       <input id="f_map" placeholder="https://maps.google.com/...">
     </div>
@@ -288,7 +335,7 @@
     <div class="hint" id="hoursUnsupported" style="display:none;">مواعيد العمل لسه مش مفعّلة — شغّل ملف 04_opening_hours.sql في Supabase.</div>
 
     <div class="field-group">
-      <label>لوجو المحل (صورة) — أو إيموجي احتياطي لو مفيش صورة</label>
+      <label id="lbl_logo">لوجو المحل (صورة) — أو إيموجي احتياطي لو مفيش صورة</label>
       <div style="display:flex;align-items:center;gap:10px;">
         <div style="position:relative;flex-shrink:0;">
           <div id="logoPreview" style="width:52px;height:52px;border-radius:12px;background:var(--cream);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden;">🏪</div>
@@ -300,7 +347,7 @@
     </div>
 
     <div class="field-group">
-      <label>صور المنيو / العروض (لحد 4 صور)</label>
+      <label id="lbl_menu">صور المنيو / العروض (لحد 4 صور)</label>
       <div class="field-row" style="grid-template-columns:repeat(4,1fr);">
         <div>
           <div style="position:relative;">
@@ -482,8 +529,12 @@ async function loadShops(){
     name_ar:s.name_ar, name_en:s.name_en, tag:s.tag, address:s.address,
     phone:s.phone, whatsapp:s.whatsapp, map:s.map_url, menu:s.menu_images,
     logo_url:s.logo_url, plan:s.plan, expiry:s.expiry_date,
-    hours:s.hours || null
+    hours:s.hours || null,
+    kind:s.kind || 'shop', service_type:s.service_type, area:s.area, vehicle:s.vehicle,
+    verified:!!s.verified, suspended:!!s.suspended, consent:!!s.consent_publish
   }));
+  // these columns only exist after 05_services.sql ran
+  if(data.length) SERVICES_SUPPORTED = 'kind' in data[0];
   // the column only exists after 04_opening_hours.sql ran; until then the form hides the hours section
   if(data.length) HOURS_SUPPORTED = 'hours' in data[0];
 }
@@ -705,7 +756,7 @@ function renderShops(){
       <div class="row-logo" style="background:${s.color};overflow:hidden;">${isImageUrl(s.logo_url) ? `<img src="${s.logo_url}" style="width:100%;height:100%;object-fit:contain;">` : s.icon}</div>
       <div class="row-info">
         <div class="row-name">${s.name_ar}</div>
-        <div class="row-meta">${catLabel(s.category)} · ${s.tag}${s.menu && s.menu.length ? ' · ' + s.menu.length + ' صورة منيو' : ''}${hoursSummary(s.hours)}</div>
+        <div class="row-meta">${catLabel(s.category)} · ${s.tag}${s.menu && s.menu.length ? ' · ' + s.menu.length + ' صورة منيو' : ''}${hoursSummary(s.hours)}${serviceSummary(s)}</div>
       </div>
       <div class="row-actions">
         ${payBadge}
@@ -909,7 +960,105 @@ function sendShopReport(id){
           'صفحتك: ' + link;
     if(!isFeaturedNow(s)) msg += '\n\nولو حابب محلك يظهر في أول القايمة بشارة ⭐ مميز، كلمني.';
   }
+  if(s.kind === 'service') msg = msg.replace(/محلك/g, 'خدمتك');
   window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');
+}
+
+/* =========================================================
+   services (people, not shops): form switching, trust fields, private notes
+   ========================================================= */
+let SERVICES_SUPPORTED = false;
+let loadedVerifiedAt = null;
+const SVC_LABELS = {delivery:'توصيل طلبات', tuktuk:'توك توك', car:'تاكسي وملاكي', cargo:'شحن ونقل', other:'خدمات تانية'};
+const KIND_TEXT = {
+  shop:    {title:'إضافة محل جديد',  edit:'تعديل بيانات المحل',          name:'اسم المحل (عربي)',          nameEn:'Shop name (English)', tag:'وصف قصير / نوع الأكل', address:'العنوان',                         logo:'لوجو المحل (صورة) — أو إيموجي احتياطي لو مفيش صورة', menu:'صور المنيو / العروض (لحد 4 صور)'},
+  service: {title:'إضافة خدمة جديدة', edit:'تعديل بيانات مقدّم الخدمة', name:'اسم مقدّم الخدمة (عربي)', nameEn:'Name (English)',     tag:'وصف قصير',            address:'نقطة التواجد / العنوان (اختياري)', logo:'الصورة الشخصية — أو إيموجي احتياطي لو مفيش صورة', menu:'صور المركبة (اختياري، لحد 4 صور)'}
+};
+
+function serviceSummary(s){
+  let out = '';
+  if(s.kind === 'service') out += ' · خدمة: ' + (SVC_LABELS[s.service_type] || '') + (s.verified ? ' ✓ موثّق' : ' (لسه ماتوثقش)');
+  if(s.suspended) out += ' · 🚫 موقوف';
+  return out;
+}
+
+function updateKindUI(){
+  const sel = document.getElementById('f_kind');
+  const kind = SERVICES_SUPPORTED ? sel.value : 'shop';
+  const tx = KIND_TEXT[kind];
+  document.getElementById('serviceFields').style.display = kind === 'service' ? 'block' : 'none';
+  document.getElementById('mapGroup').style.display = kind === 'service' ? 'none' : '';
+  document.getElementById('modalTitle').textContent = editingId ? tx.edit : tx.title;
+  document.getElementById('lbl_name_ar').textContent = tx.name;
+  document.getElementById('lbl_name_en').textContent = tx.nameEn;
+  document.getElementById('lbl_tag').textContent = tx.tag;
+  document.getElementById('lbl_address').textContent = tx.address;
+  document.getElementById('lbl_logo').textContent = tx.logo;
+  document.getElementById('lbl_menu').textContent = tx.menu;
+  // a provider belongs in the delivery & rides category by default
+  if(kind === 'service' && !editingId){
+    const cat = document.getElementById('f_category');
+    if(Array.from(cat.options).some(o => o.value === 'transport')) cat.value = 'transport';
+  }
+}
+
+async function loadPrivateNote(id){
+  loadedVerifiedAt = null;
+  document.getElementById('f_verified_note').value = '';
+  const {data} = await db.from('provider_private').select('verified_note, verified_at').eq('shop_id', id).maybeSingle();
+  if(data){
+    document.getElementById('f_verified_note').value = data.verified_note || '';
+    loadedVerifiedAt = data.verified_at || null;
+  }
+}
+
+function fillServiceForm(s){
+  document.getElementById('kindGroup').style.display = SERVICES_SUPPORTED ? '' : 'none';
+  document.getElementById('suspendGroup').style.display = SERVICES_SUPPORTED ? '' : 'none';
+  document.getElementById('servicesUnsupported').style.display = SERVICES_SUPPORTED ? 'none' : 'block';
+  document.getElementById('f_kind').value = (s && s.kind) || 'shop';
+  document.getElementById('f_svc_type').value = (s && s.service_type) || 'delivery';
+  document.getElementById('f_area').value = (s && s.area) || '';
+  document.getElementById('f_vehicle').value = (s && s.vehicle) || '';
+  document.getElementById('f_consent').checked = !!(s && s.consent);
+  document.getElementById('f_verified').checked = !!(s && s.verified);
+  document.getElementById('f_suspended').checked = !!(s && s.suspended);
+  document.getElementById('f_verified_note').value = '';
+  loadedVerifiedAt = null;
+  updateKindUI();
+  if(s && s.kind === 'service') loadPrivateNote(s.id);
+}
+
+/* -> null when the backend has no service columns yet, false when invalid (toast shown), else the fields to save */
+function readServiceFields(){
+  if(!SERVICES_SUPPORTED) return null;
+  const kind = document.getElementById('f_kind').value;
+  const suspended = document.getElementById('f_suspended').checked;
+  if(kind !== 'service') return {kind:'shop', service_type:null, area:null, vehicle:null, verified:false, consent_publish:false, suspended};
+  if(!document.getElementById('f_consent').checked){
+    showToast('لازم تتأكد إنه وافق على نشر رقمه الأول');
+    return false;
+  }
+  return {
+    kind:'service',
+    service_type: document.getElementById('f_svc_type').value,
+    area: document.getElementById('f_area').value.trim() || null,
+    vehicle: document.getElementById('f_vehicle').value.trim() || null,
+    verified: document.getElementById('f_verified').checked,
+    consent_publish: true,
+    suspended
+  };
+}
+
+async function savePrivateNote(shopId, svc){
+  const verified_at = svc.verified ? (loadedVerifiedAt || new Date().toISOString().slice(0, 10)) : null;
+  const {error} = await db.from('provider_private').upsert({
+    shop_id: shopId,
+    verified_note: document.getElementById('f_verified_note').value.trim() || null,
+    verified_at,
+    updated_at: new Date().toISOString()
+  });
+  if(error){ console.error(error); showToast('اتحفظ، بس ملاحظات التحقق ماتحفظتش'); }
 }
 
 /* ===== opening hours editor ===== */
@@ -1010,6 +1159,7 @@ function openForm(id){
   document.getElementById('f_map').value = s ? s.map : '';
   document.getElementById('f_icon').value = s ? s.icon : '';
   fillHoursForm(s ? s.hours : null);
+  fillServiceForm(s);
 
   pendingLogoUrl = s ? (s.logo_url || null) : null;
   renderPreview(document.getElementById('logoPreview'), pendingLogoUrl, s ? (s.icon || '🏪') : '🏪', 'contain', 'logoRemoveBtn');
@@ -1070,6 +1220,8 @@ async function saveShop(){
     hours = readHours();
     if(hours === false) return;
   }
+  const svc = readServiceFields();
+  if(svc === false) return;
 
   const plan = document.getElementById('f_plan').value;
   const planChanged = plan !== formOriginalPlan;
@@ -1093,6 +1245,7 @@ async function saveShop(){
     expiry_date,
   };
   if(HOURS_SUPPORTED) data.hours = hours;
+  if(svc) Object.assign(data, svc);
 
   const price = Number(document.getElementById('f_price').value) || 0;
   const collected = document.getElementById('f_collected').checked;
@@ -1112,6 +1265,7 @@ async function saveShop(){
   }
 
   await db.from('shop_billing').upsert({shop_id: shopId, plan, price, collected});
+  if(svc && svc.kind === 'service') await savePrivateNote(shopId, svc);
 
   closeForm();
   await Promise.all([loadShops(), loadBilling()]);
