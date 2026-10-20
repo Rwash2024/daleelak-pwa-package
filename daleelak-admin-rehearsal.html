@@ -247,6 +247,18 @@
       </div>
     </div>
 
+    <div class="field-row">
+      <div class="field-group">
+        <label>رقم التليفون <span style="color:var(--danger);">(إجباري)</span></label>
+        <input id="f_phone" type="tel" inputmode="tel" placeholder="01xxxxxxxxx">
+        <div class="field-error" id="err_phone">اكتب رقم تليفون صحيح</div>
+      </div>
+      <div class="field-group">
+        <label>رقم الواتساب <span style="font-weight:400;">(لو فاضي هنستخدم نفس التليفون)</span></label>
+        <input id="f_whatsapp" type="tel" inputmode="tel" placeholder="201xxxxxxxxx">
+      </div>
+    </div>
+
     <div class="field-group">
       <label>القسم</label>
       <select id="f_category"></select>
@@ -300,18 +312,6 @@
       <textarea id="f_address"></textarea>
     </div>
 
-    <div class="field-row">
-      <div class="field-group">
-        <label>رقم التليفون</label>
-        <input id="f_phone" placeholder="01xxxxxxxxx">
-        <div class="field-error" id="err_phone">اكتب رقم تليفون صحيح</div>
-      </div>
-      <div class="field-group">
-        <label>رقم الواتساب</label>
-        <input id="f_whatsapp" placeholder="201xxxxxxxxx">
-      </div>
-    </div>
-
     <div class="field-group" id="mapGroup">
       <label>لينك اللوكيشن (Google Maps)</label>
       <input id="f_map" placeholder="https://maps.google.com/...">
@@ -346,7 +346,7 @@
       <input id="f_icon" placeholder="🍔ايموجي احتياطي" maxlength="2" style="margin-top:8px;">
     </div>
 
-    <div class="field-group">
+    <div class="field-group" id="menuGroup">
       <label id="lbl_menu">صور المنيو / العروض (لحد 4 صور)</label>
       <div class="field-row" style="grid-template-columns:repeat(4,1fr);">
         <div>
@@ -614,11 +614,21 @@ function catLabel(catId){
   return c ? c.icon + ' ' + c.label : '—';
 }
 
-function renderCategoryOptions(){
+function renderCategoryOptions(wantedCat){
   const sel = document.getElementById('f_category');
-  const current = sel.value;
-  sel.innerHTML = CATS.map(c => `<option value="${c.id}">${c.icon} ${c.label}</option>`).join('');
-  if(CATS.some(c=>c.id===current)) sel.value = current;
+  const current = wantedCat || sel.value;
+  const kindEl = document.getElementById('f_kind');
+  const kind = (typeof SERVICES_SUPPORTED !== 'undefined' && SERVICES_SUPPORTED && kindEl) ? kindEl.value : 'shop';
+  const list = kind === 'service'
+    ? CATS.filter(c => SERVICE_CATS.includes(c.id))
+    : CATS.filter(c => !SERVICE_ONLY_CATS.includes(c.id));
+  // when editing, never silently move a record out of the category it already has
+  if(editingId && current && current === formOriginalCategory && !list.some(c => c.id === current)){
+    const orig = CATS.find(c => c.id === current);
+    if(orig) list.push(orig);
+  }
+  sel.innerHTML = list.map(c => `<option value="${c.id}">${c.icon} ${c.label}</option>`).join('');
+  if(list.some(c => c.id === current)) sel.value = current;
 }
 
 function renderCatRows(){
@@ -915,7 +925,7 @@ async function openShopPoster(id){
     ${tag ? '<div class="tag">' + esc(tag) + '</div>' : ''}
   </div>
   <h1>تواصل معانا <span>بضغطة واحدة</span></h1>
-  <div class="sub">اتصال · واتساب · موقعنا · المنيو</div>
+  <div class="sub">${s.kind === 'service' ? 'اتصال · واتساب' : 'اتصال · واتساب · موقعنا · المنيو'}</div>
   <div class="ticket"><div class="badge">📲 امسح الكود</div><div class="qr">${svg}</div></div>
   <div class="hint">افتح كاميرا التليفون ووجّهها على الكود</div>
   <div class="brand"><img src="https://nhtqdfnmdsrhbplfkdey.supabase.co/storage/v1/object/public/shop-images/branding/logo.png" alt=""><span>موجودين على <b>دليلك</b> — دليل محلات النزهة وقباء</span></div>
@@ -982,21 +992,35 @@ function serviceSummary(s){
   return out;
 }
 
-function updateKindUI(){
-  const sel = document.getElementById('f_kind');
-  const kind = SERVICES_SUPPORTED ? sel.value : 'shop';
+/* categories offered depend on what is being added: a shop can't go under "Delivery & rides",
+   and a provider can only go under the service categories */
+const SERVICE_CATS = ['transport', 'services'];
+const SERVICE_ONLY_CATS = ['transport'];
+let formOriginalCategory = null;
+
+function updateKindUI(wantedCat){
+  const kind = SERVICES_SUPPORTED ? document.getElementById('f_kind').value : 'shop';
+  const isSvcKind = kind === 'service';
   const tx = KIND_TEXT[kind];
-  document.getElementById('serviceFields').style.display = kind === 'service' ? 'block' : 'none';
-  document.getElementById('mapGroup').style.display = kind === 'service' ? 'none' : '';
+  document.getElementById('serviceFields').style.display = isSvcKind ? 'block' : 'none';
+  // things that only make sense for a shop
+  document.getElementById('mapGroup').style.display = isSvcKind ? 'none' : '';
+  document.getElementById('menuGroup').style.display = isSvcKind ? 'none' : '';
+  document.getElementById('f_icon').style.display = isSvcKind ? 'none' : '';
+  document.getElementById('hoursGroup').style.display = (!isSvcKind && HOURS_SUPPORTED) ? '' : 'none';
+  document.getElementById('hoursUnsupported').style.display = (isSvcKind || HOURS_SUPPORTED) ? 'none' : 'block';
   document.getElementById('modalTitle').textContent = editingId ? tx.edit : tx.title;
   document.getElementById('lbl_name_ar').textContent = tx.name;
   document.getElementById('lbl_name_en').textContent = tx.nameEn;
   document.getElementById('lbl_tag').textContent = tx.tag;
   document.getElementById('lbl_address').textContent = tx.address;
   document.getElementById('lbl_logo').textContent = tx.logo;
-  document.getElementById('lbl_menu').textContent = tx.menu;
-  // a provider belongs in the delivery & rides category by default
-  if(kind === 'service' && !editingId){
+  document.getElementById('f_name_ar').placeholder = isSvcKind ? 'مثال: أحمد السيد' : 'مطعم الأصيل';
+  document.getElementById('f_name_en').placeholder = isSvcKind ? 'Ahmed El Sayed' : 'Al Aseel Restaurant';
+  document.getElementById('f_tag_ar').placeholder = isSvcKind ? 'مثال: بوصّل طلبات من الصبح للفجر' : 'مثال: أكل شعبي — كشري وفول';
+
+  renderCategoryOptions(wantedCat);
+  if(isSvcKind && !editingId && !wantedCat){
     const cat = document.getElementById('f_category');
     if(Array.from(cat.options).some(o => o.value === 'transport')) cat.value = 'transport';
   }
@@ -1025,7 +1049,8 @@ function fillServiceForm(s){
   document.getElementById('f_suspended').checked = !!(s && s.suspended);
   document.getElementById('f_verified_note').value = '';
   loadedVerifiedAt = null;
-  updateKindUI();
+  formOriginalCategory = s ? (s.category || null) : null;
+  updateKindUI(s ? s.category : null);
   if(s && s.kind === 'service') loadPrivateNote(s.id);
 }
 
@@ -1215,13 +1240,14 @@ async function saveShop(){
   }
   phoneErr.style.display = 'none';
 
+  const svc = readServiceFields();
+  if(svc === false) return;
+  const savingProvider = !!(svc && svc.kind === 'service');
   let hours = null;
-  if(HOURS_SUPPORTED){
+  if(HOURS_SUPPORTED && !savingProvider){
     hours = readHours();
     if(hours === false) return;
   }
-  const svc = readServiceFields();
-  if(svc === false) return;
 
   const plan = document.getElementById('f_plan').value;
   const planChanged = plan !== formOriginalPlan;
@@ -1246,6 +1272,11 @@ async function saveShop(){
   };
   if(HOURS_SUPPORTED) data.hours = hours;
   if(svc) Object.assign(data, svc);
+  if(savingProvider){
+    data.menu_images = [];
+    data.icon = '🛵';
+    if(HOURS_SUPPORTED) data.hours = null;
+  }
 
   const price = Number(document.getElementById('f_price').value) || 0;
   const collected = document.getElementById('f_collected').checked;
