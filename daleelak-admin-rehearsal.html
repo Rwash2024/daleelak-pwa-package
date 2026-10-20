@@ -142,7 +142,10 @@
           <div class="brand-sub">قسم المطاعم — النزهة وقباء</div>
         </div>
       </div>
-      <button class="logout-btn" onclick="logout()">خروج</button>
+      <div style="display:flex;gap:8px;">
+        <button class="logout-btn" onclick="openPwForm()">🔑 الباسورد</button>
+        <button class="logout-btn" onclick="logout()">خروج</button>
+      </div>
     </div>
   </header>
 
@@ -367,6 +370,26 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="pwModalOverlay">
+  <div class="modal" style="max-width:360px;">
+    <h3>تغيير الباسورد</h3>
+    <div class="hint">اكتب باسورد جديد (10 حروف على الأقل). هتفضل داخل، وهتستخدمه المرة الجاية.</div>
+    <div class="field-group">
+      <label>الباسورد الجديد</label>
+      <input id="pw_new" type="password" autocomplete="new-password">
+    </div>
+    <div class="field-group">
+      <label>اكتبه تاني للتأكيد</label>
+      <input id="pw_confirm" type="password" autocomplete="new-password">
+      <div class="field-error" id="pw_error"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closePwForm()">إلغاء</button>
+      <button class="btn-save" id="pw_save" onclick="savePassword()">حفظ الباسورد</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -470,6 +493,31 @@ async function tryLogin(){
   }
   document.getElementById('gateError').style.display = 'none';
   await enterDashboard();
+}
+
+function openPwForm(){
+  document.getElementById('pw_new').value = '';
+  document.getElementById('pw_confirm').value = '';
+  document.getElementById('pw_error').style.display = 'none';
+  document.getElementById('pwModalOverlay').classList.add('active');
+}
+function closePwForm(){
+  document.getElementById('pwModalOverlay').classList.remove('active');
+}
+async function savePassword(){
+  const a = document.getElementById('pw_new').value;
+  const b = document.getElementById('pw_confirm').value;
+  const err = document.getElementById('pw_error');
+  const fail = msg => { err.textContent = msg; err.style.display = 'block'; };
+  if(a.length < 10) return fail('الباسورد لازم يكون 10 حروف على الأقل');
+  if(a !== b) return fail('الباسوردين مش متطابقين');
+  const btn = document.getElementById('pw_save');
+  btn.disabled = true;
+  const {error} = await db.auth.updateUser({password: a});
+  btn.disabled = false;
+  if(error){ fail(error.message || 'حصل خطأ، جرب تاني'); console.error(error); return; }
+  closePwForm();
+  showToast('اتغيّر الباسورد ✓');
 }
 
 async function logout(){
