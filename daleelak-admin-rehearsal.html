@@ -84,6 +84,11 @@
   .expiry-none{background:#EFEAE0;color:var(--muted);}
 
   .empty{text-align:center;color:var(--muted);font-size:13px;padding:30px 10px;}
+  .hours-edit-row{display:grid;grid-template-columns:62px 72px 1fr 1fr;gap:6px;align-items:center;margin-bottom:6px;}
+  .hours-edit-row .hd{font-size:12px;font-weight:700;}
+  .hours-edit-row .hc{display:flex;align-items:center;gap:4px;margin:0;font-size:11px;cursor:pointer;color:var(--ink);}
+  .hours-edit-row .hc input{width:auto;}
+  .hours-edit-row input[type="time"]:disabled{opacity:.35;}
 
   /* Modal form */
   .modal-overlay{
@@ -261,6 +266,23 @@
       <label>لينك اللوكيشن (Google Maps)</label>
       <input id="f_map" placeholder="https://maps.google.com/...">
     </div>
+
+    <div class="field-group" id="hoursGroup">
+      <label>مواعيد العمل</label>
+      <select id="f_hours_mode" onchange="updateHoursUI()">
+        <option value="none">مش محدد</option>
+        <option value="24h">24 ساعة طول الأسبوع</option>
+        <option value="daily">نفس المواعيد كل يوم</option>
+        <option value="custom">مواعيد مختلفة حسب اليوم</option>
+      </select>
+      <div id="hoursDaily" class="field-row" style="display:none;margin-top:8px;">
+        <div><label>بيفتح</label><input type="time" id="f_hours_open" value="09:00"></div>
+        <div><label>بيقفل</label><input type="time" id="f_hours_close" value="23:00"></div>
+      </div>
+      <div id="hoursCustom" style="display:none;margin-top:8px;"></div>
+      <div class="hint" style="margin:6px 0 0;">لو بيقفل بعد نص الليل (مثلًا 2 الفجر) اكتبه عادي وهيتحسب صح. المواعيد بتوقيت القاهرة.</div>
+    </div>
+    <div class="hint" id="hoursUnsupported" style="display:none;">مواعيد العمل لسه مش مفعّلة — شغّل ملف 04_opening_hours.sql في Supabase.</div>
 
     <div class="field-group">
       <label>لوجو المحل (صورة) — أو إيموجي احتياطي لو مفيش صورة</label>
@@ -440,6 +462,7 @@ let SHOPS = [];
 let editingId = null;
 let formOriginalPlan = null;
 let PLAN_PRICES = {};
+let HOURS_SUPPORTED = false;
 let BILLING = {};
 
 async function loadCats(){
@@ -455,8 +478,11 @@ async function loadShops(){
     id:s.id, icon:s.icon, color:s.color, category:s.category_id,
     name_ar:s.name_ar, name_en:s.name_en, tag:s.tag, address:s.address,
     phone:s.phone, whatsapp:s.whatsapp, map:s.map_url, menu:s.menu_images,
-    logo_url:s.logo_url, plan:s.plan, expiry:s.expiry_date
+    logo_url:s.logo_url, plan:s.plan, expiry:s.expiry_date,
+    hours:s.hours || null
   }));
+  // the column only exists after 04_opening_hours.sql ran; until then the form hides the hours section
+  if(data.length) HOURS_SUPPORTED = 'hours' in data[0];
 }
 
 async function loadPlanPrices(){
@@ -675,7 +701,7 @@ function renderShops(){
       <div class="row-logo" style="background:${s.color};overflow:hidden;">${isImageUrl(s.logo_url) ? `<img src="${s.logo_url}" style="width:100%;height:100%;object-fit:contain;">` : s.icon}</div>
       <div class="row-info">
         <div class="row-name">${s.name_ar}</div>
-        <div class="row-meta">${catLabel(s.category)} · ${s.tag}${s.menu && s.menu.length ? ' · ' + s.menu.length + ' صورة منيو' : ''}</div>
+        <div class="row-meta">${catLabel(s.category)} · ${s.tag}${s.menu && s.menu.length ? ' · ' + s.menu.length + ' صورة منيو' : ''}${hoursSummary(s.hours)}</div>
       </div>
       <div class="row-actions">
         ${payBadge}
@@ -744,6 +770,90 @@ function clearImage(slot){
   }
 }
 
+/* ===== opening hours editor ===== */
+const HOURS_DAYS = [['sat','السبت'],['sun','الأحد'],['mon','الإثنين'],['tue','الثلاثاء'],['wed','الأربعاء'],['thu','الخميس'],['fri','الجمعة']];
+const hm = v => /^\d{2}:\d{2}$/.test(v || '');
+
+function buildHoursCustom(){
+  document.getElementById('hoursCustom').innerHTML = HOURS_DAYS.map(([k, name]) => `
+    <div class="hours-edit-row">
+      <span class="hd">${name}</span>
+      <label class="hc"><input type="checkbox" id="hc_${k}" onchange="syncHoursRow('${k}')"> مقفول</label>
+      <input type="time" id="ho_${k}" value="09:00">
+      <input type="time" id="hx_${k}" value="23:00">
+    </div>`).join('') +
+    '<button type="button" class="btn-cancel" style="margin-top:4px;padding:8px;font-size:12px;width:100%;" onclick="copyFirstDay()">انسخ مواعيد السبت لباقي الأيام</button>';
+}
+function syncHoursRow(k){
+  const closed = document.getElementById('hc_' + k).checked;
+  document.getElementById('ho_' + k).disabled = closed;
+  document.getElementById('hx_' + k).disabled = closed;
+}
+function copyFirstDay(){
+  const o = document.getElementById('ho_sat').value, x = document.getElementById('hx_sat').value;
+  const closed = document.getElementById('hc_sat').checked;
+  HOURS_DAYS.forEach(([k]) => {
+    document.getElementById('ho_' + k).value = o;
+    document.getElementById('hx_' + k).value = x;
+    document.getElementById('hc_' + k).checked = closed;
+    syncHoursRow(k);
+  });
+}
+function updateHoursUI(){
+  const mode = document.getElementById('f_hours_mode').value;
+  document.getElementById('hoursDaily').style.display = mode === 'daily' ? 'grid' : 'none';
+  document.getElementById('hoursCustom').style.display = mode === 'custom' ? 'block' : 'none';
+}
+function fillHoursForm(h){
+  document.getElementById('hoursGroup').style.display = HOURS_SUPPORTED ? '' : 'none';
+  document.getElementById('hoursUnsupported').style.display = HOURS_SUPPORTED ? 'none' : 'block';
+  document.getElementById('f_hours_mode').value = (h && h.mode) || 'none';
+  document.getElementById('f_hours_open').value = (h && h.mode === 'daily' && h.open) || '09:00';
+  document.getElementById('f_hours_close').value = (h && h.mode === 'daily' && h.close) || '23:00';
+  HOURS_DAYS.forEach(([k]) => {
+    const d = h && h.mode === 'custom' && h.days ? h.days[k] : undefined;
+    const closed = !!(h && h.mode === 'custom') && !d;
+    document.getElementById('hc_' + k).checked = closed;
+    document.getElementById('ho_' + k).value = (d && d.open) || '09:00';
+    document.getElementById('hx_' + k).value = (d && d.close) || '23:00';
+    syncHoursRow(k);
+  });
+  updateHoursUI();
+}
+/* -> null (not specified) | hours object | false (invalid, a toast was shown) */
+function readHours(){
+  const mode = document.getElementById('f_hours_mode').value;
+  if(mode === 'none') return null;
+  if(mode === '24h') return {mode:'24h'};
+  if(mode === 'daily'){
+    const open = document.getElementById('f_hours_open').value, close = document.getElementById('f_hours_close').value;
+    if(!hm(open) || !hm(close)){ showToast('اكتب وقت الفتح ووقت القفل'); return false; }
+    if(open === close){ showToast('الفتح والقفل في نفس الوقت — اختار "24 ساعة" لو بيفتح طول اليوم'); return false; }
+    return {mode:'daily', open, close};
+  }
+  const days = {}; let openDays = 0;
+  for(const [k, name] of HOURS_DAYS){
+    if(document.getElementById('hc_' + k).checked){ days[k] = null; continue; }
+    const open = document.getElementById('ho_' + k).value, close = document.getElementById('hx_' + k).value;
+    if(!hm(open) || !hm(close)){ showToast('اكتب مواعيد يوم ' + name); return false; }
+    if(open === close){ showToast('يوم ' + name + ': الفتح والقفل في نفس الوقت'); return false; }
+    days[k] = {open, close}; openDays++;
+  }
+  if(!openDays){ showToast('اختار يوم واحد على الأقل بيفتح فيه'); return false; }
+  return {mode:'custom', days};
+}
+function fmt12(s){
+  if(!hm(s)) return '';
+  const h24 = +s.slice(0, 2), m = s.slice(3);
+  return (h24 % 12 || 12) + ':' + m + (h24 < 12 ? ' ص' : ' م');
+}
+function hoursSummary(h){
+  if(!h || !h.mode) return '';
+  if(h.mode === '24h') return ' · 24 ساعة';
+  if(h.mode === 'daily') return ' · ' + fmt12(h.open) + ' – ' + fmt12(h.close);
+  return ' · مواعيد حسب اليوم';
+}
+
 function openForm(id){
   editingId = id || null;
   document.getElementById('modalTitle').textContent = id ? 'تعديل بيانات المحل' : 'إضافة محل جديد';
@@ -757,6 +867,7 @@ function openForm(id){
   document.getElementById('f_whatsapp').value = s ? s.whatsapp : '';
   document.getElementById('f_map').value = s ? s.map : '';
   document.getElementById('f_icon').value = s ? s.icon : '';
+  fillHoursForm(s ? s.hours : null);
 
   pendingLogoUrl = s ? (s.logo_url || null) : null;
   renderPreview(document.getElementById('logoPreview'), pendingLogoUrl, s ? (s.icon || '🏪') : '🏪', 'contain', 'logoRemoveBtn');
@@ -812,6 +923,12 @@ async function saveShop(){
   }
   phoneErr.style.display = 'none';
 
+  let hours = null;
+  if(HOURS_SUPPORTED){
+    hours = readHours();
+    if(hours === false) return;
+  }
+
   const plan = document.getElementById('f_plan').value;
   const planChanged = plan !== formOriginalPlan;
   const expiry_date = (!editingId || planChanged)
@@ -833,6 +950,7 @@ async function saveShop(){
     plan,
     expiry_date,
   };
+  if(HOURS_SUPPORTED) data.hours = hours;
 
   const price = Number(document.getElementById('f_price').value) || 0;
   const collected = document.getElementById('f_collected').checked;
@@ -961,6 +1079,8 @@ function showToast(msg){
   t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'), 1800);
 }
+
+buildHoursCustom();
 
 db.auth.getSession().then(({data}) => {
   if(data.session) enterDashboard();

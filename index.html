@@ -309,6 +309,28 @@
   .feat-badge{display:inline-block;vertical-align:middle;margin-inline-start:6px;background:linear-gradient(110deg,var(--gold),#FFD58A);color:#4A2E06;font-size:10px;font-weight:800;padding:2px 8px;border-radius:10px;white-space:nowrap;font-family:'Tajawal',sans-serif;}
   .shop-tag{font-size:12.5px;color:var(--gold-dark);font-weight:600;margin-top:1px;}
   .shop-addr{font-size:12px;color:var(--muted);margin-top:4px;display:flex;align-items:flex-start;gap:4px;line-height:1.45;}
+  .open-chip{display:inline-flex;align-items:center;gap:6px;margin-top:6px;font-size:11.5px;font-weight:800;padding:3px 10px;border-radius:12px;white-space:nowrap;}
+  .open-chip i{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0;}
+  .open-chip.ok{background:rgba(46,125,91,.13);color:#2E7D5B;}
+  .open-chip.soon{background:rgba(232,163,61,.2);color:var(--gold-dark);}
+  .open-chip.closed{background:rgba(192,57,43,.12);color:#C0392B;}
+  [data-theme="dark"] .open-chip.ok{background:rgba(95,214,160,.14);color:#5FD6A0;}
+  [data-theme="dark"] .open-chip.closed{background:rgba(255,138,125,.14);color:#FF8A7D;}
+  .filter-bar{display:flex;margin:-4px 2px 14px;}
+  .filter-bar[hidden]{display:none;}
+  .filter-chip{border:1px solid var(--line);background:var(--paper);color:var(--ink);font-family:inherit;font-weight:700;font-size:13px;padding:8px 16px;border-radius:20px;cursor:pointer;box-shadow:var(--shadow-sm);transition:transform .3s var(--spring), background .2s ease, border-color .2s ease, color .2s ease;}
+  .filter-chip{display:inline-flex;align-items:center;}
+  .filter-chip::before{content:"";width:8px;height:8px;border-radius:50%;background:#2E7D5B;margin-inline-end:8px;flex-shrink:0;}
+  .filter-chip.on::before{background:#fff;}
+  .filter-chip:hover{transform:translateY(-2px);}
+  .filter-chip:active{transform:scale(.95);}
+  .filter-chip.on{background:#2E7D5B;color:#fff;border-color:#2E7D5B;}
+  .hours-list{display:none;margin-top:8px;border-top:1px dashed var(--line);padding-top:6px;}
+  .info-row.open .hours-list{display:block;animation:fadeIn .3s ease;}
+  .info-row.open .info-hint{display:none;}
+  .hours-row{display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:4px 0;}
+  .hours-row.today{font-weight:800;color:var(--red);}
+  .hours-row .muted{color:var(--muted);}
   .shop-addr svg{width:13px;height:13px;flex-shrink:0;margin-top:2px;color:var(--red);}
   .chevron{color:var(--muted);flex-shrink:0;transition:transform .35s var(--spring), color .2s ease;display:flex;}
   .chevron svg{width:20px;height:20px;}
@@ -624,6 +646,7 @@
         <button class="back-circle rip" id="listBack" type="button" aria-label="back">→</button>
         <span class="list-title-wrap"><span id="listTitle"></span><span class="list-count" id="listCount"></span></span>
       </div>
+      <div class="filter-bar" id="filterBar" hidden><button class="filter-chip rip" id="openFilter" type="button"></button></div>
       <div class="shop-list" id="shopList"></div>
     </div>
 
@@ -688,6 +711,10 @@ const I18N = {
     shopsCount:'محل', comingSoon:'قريبًا', back:'رجوع', share:'مشاركة',
     addressLabel:'العنوان', phoneLabel:'تليفون', tapCopy:'دوس للنسخ', openMap:'افتح على الخريطة',
     menuTitle:'المنيو والعروض', soundTitle:'الصوت',
+    hoursLabel:'مواعيد العمل', openNow:'مفتوح الآن', closedNow:'مقفول', open24:'24 ساعة', closesAt:'يقفل', closesSoon:'يقفل بعد', minShort:'دقيقة',
+    opensToday:'يفتح النهارده', opensTomorrow:'يفتح بكرة', opens:'يفتح', showWeek:'كل الأيام', allDay24:'24 ساعة — كل يوم', closedDay:'مقفول', todayLabel:'النهارده',
+    filterOpen:'مفتوح الآن', noOpenNow:'مفيش محلات مفتوحة دلوقتي هنا', noOpenNowHint:'جرّب تشيل فلتر "مفتوح الآن" وشوف كل المحلات.',
+    dayNames:['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'],
     call:'اتصال', whatsapp:'واتساب', map:'الموقع',
     searchResultsFor:'نتايج البحث عن', resultsCount:'نتيجة',
     noResults:'مفيش نتايج', noResultsHint:'جرب كلمة تانية، أو قولّنا على المحل اللي بتدور عليه ونضيفه.', tellUs:'قولّنا على محل',
@@ -705,6 +732,10 @@ const I18N = {
     shopsCount:'shops', comingSoon:'Soon', back:'Back', share:'Share',
     addressLabel:'Address', phoneLabel:'Phone', tapCopy:'Tap to copy', openMap:'Open in maps',
     menuTitle:'Menu & offers', soundTitle:'Sound',
+    hoursLabel:'Opening hours', openNow:'Open now', closedNow:'Closed', open24:'Open 24h', closesAt:'closes', closesSoon:'closes in', minShort:'min',
+    opensToday:'opens today', opensTomorrow:'opens tomorrow', opens:'opens', showWeek:'All days', allDay24:'Open 24h every day', closedDay:'Closed', todayLabel:'Today',
+    filterOpen:'Open now', noOpenNow:'No shops open right now', noOpenNowHint:'Try turning off the "Open now" filter to see every shop.',
+    dayNames:['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
     call:'Call', whatsapp:'WhatsApp', map:'Location',
     searchResultsFor:'Results for', resultsCount:'results',
     noResults:'No results found', noResultsHint:'Try another word, or tell us about the shop you are looking for and we will add it.', tellUs:'Suggest a shop',
@@ -732,6 +763,7 @@ const isImageUrl = v => !!v && /^https?:\/\//.test(v);
 const waLink = (num, text) => `https://wa.me/${num}` + (text ? `?text=${encodeURIComponent(text)}` : '');
 
 const ICON = {
+  clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
   pin:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 00-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 00-7-7zm0 9.5A2.5 2.5 0 119.5 9 2.5 2.5 0 0112 11.5z"/></svg>',
   phone:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8a15.1 15.1 0 006.6 6.6l2.2-2.2a1 1 0 011-.25 11.4 11.4 0 003.6.57 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1c0 1.25.2 2.45.57 3.57a1 1 0 01-.25 1z"/></svg>',
   chat:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.3 2 11.6c0 1.9.6 3.7 1.6 5.2L2.5 21.5l4.9-1.4a10.4 10.4 0 004.6 1.1c5.5 0 10-4.3 10-9.6S17.5 2 12 2zm4.9 13.1c-.2.6-1.2 1.1-1.7 1.2-.4.1-1 .1-3.2-.7a10.8 10.8 0 01-4.4-3.9c-.4-.5-1.1-1.5-1.1-2.8s.7-1.9.9-2.2c.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 1.9c.1.2.1.3 0 .5l-.4.6c-.1.2-.3.3-.1.6.2.3.8 1.2 1.6 1.9 1.1.9 2 1.2 2.3 1.4.3.1.4.1.6-.1l.8-1c.2-.3.4-.2.6-.1l1.8.9c.3.1.5.2.5.3.1.2.1.7-.1 1.2z"/></svg>',
@@ -813,7 +845,8 @@ async function loadData(){
       tag:{ar:x.tag || '', en:x.tag || ''},
       address:{ar:x.address || '', en:x.address || ''},
       phone:x.phone || '', whatsapp:x.whatsapp || x.phone || '',
-      mapUrl:x.map_url || '', menu:Array.isArray(x.menu_images) ? x.menu_images.filter(Boolean) : []
+      mapUrl:x.map_url || '', menu:Array.isArray(x.menu_images) ? x.menu_images.filter(Boolean) : [],
+      hours:(x.hours && typeof x.hours === 'object') ? x.hours : null
     }));
     // paying shops first; inside each group keep the order they were added
     SHOPS.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
@@ -964,6 +997,111 @@ function renderCats(){
   animateCounts();
 }
 
+/* =========================================================
+   opening hours (always evaluated in Cairo time, whatever the visitor's device says)
+   ========================================================= */
+const DAY_KEYS = ['sun','mon','tue','wed','thu','fri','sat'];
+const WEEK_ORDER = [6, 0, 1, 2, 3, 4, 5];   // Egypt's week starts on Saturday
+const hhmm = s => { const m = /^(\d{1,2}):(\d{2})$/.exec(s || ''); return m ? (+m[1]) * 60 + (+m[2]) : null; };
+
+function cairoNow(){
+  const parts = new Intl.DateTimeFormat('en-US', {timeZone:'Africa/Cairo', weekday:'short', hour:'2-digit', minute:'2-digit', hourCycle:'h23'}).formatToParts(new Date());
+  const get = type => (parts.find(x => x.type === type) || {}).value;
+  const day = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(get('weekday'));
+  return {day: day < 0 ? 0 : day, min: (+get('hour')) * 60 + (+get('minute'))};
+}
+
+function fmtTime(s){
+  const m = hhmm(s);
+  if(m === null) return '';
+  const h24 = Math.floor(m / 60), mm = String(m % 60).padStart(2, '0'), h12 = h24 % 12 || 12;
+  const suffix = LANG === 'ar' ? (h24 < 12 ? 'ص' : 'م') : (h24 < 12 ? 'AM' : 'PM');
+  return `${h12}:${mm} ${suffix}`;
+}
+
+function daySched(hours, day){
+  if(hours.mode === 'daily') return {open:hours.open, close:hours.close};
+  if(hours.mode === 'custom') return (hours.days && hours.days[DAY_KEYS[day]]) || null;
+  return null;
+}
+
+/* -> null when unknown, else {open, always, closesAt, closesIn, opensAt, dayOffset, opensDay} */
+function hoursStatus(hours){
+  if(!hours || !hours.mode) return null;
+  if(hours.mode === '24h') return {open:true, always:true};
+  const now = cairoNow();
+
+  const today = daySched(hours, now.day);
+  if(today){
+    const o = hhmm(today.open), c = hhmm(today.close);
+    if(o !== null && c !== null){
+      if(o === c) return {open:true, always:true};
+      if(o < c && now.min >= o && now.min < c) return {open:true, closesAt:today.close, closesIn:c - now.min};
+      if(o > c && now.min >= o) return {open:true, closesAt:today.close, closesIn:c + 1440 - now.min};   // after-midnight closing
+    }
+  }
+  // still inside yesterday's after-midnight window?
+  const yest = daySched(hours, (now.day + 6) % 7);
+  if(yest){
+    const o = hhmm(yest.open), c = hhmm(yest.close);
+    if(o !== null && c !== null && o > c && now.min < c) return {open:true, closesAt:yest.close, closesIn:c - now.min};
+  }
+  // closed: find the next opening
+  for(let i = 0; i < 8; i++){
+    const d = (now.day + i) % 7, sc = daySched(hours, d);
+    if(!sc) continue;
+    const o = hhmm(sc.open);
+    if(o === null) continue;
+    if(i === 0 && o <= now.min) continue;
+    return {open:false, opensAt:sc.open, dayOffset:i, opensDay:d};
+  }
+  return {open:false};
+}
+
+/* what to show on a card: {open, cls, text} or null when the shop gave no hours */
+function openChip(s){
+  const st = hoursStatus(s.hours);
+  if(!st) return null;
+  if(st.always) return {open:true, cls:'ok', text:t('open24')};
+  if(st.open){
+    if(st.closesIn <= 60) return {open:true, cls:'soon', text:`${t('closesSoon')} ${st.closesIn} ${t('minShort')}`};
+    return {open:true, cls:'ok', text:`${t('openNow')} · ${t('closesAt')} ${fmtTime(st.closesAt)}`};
+  }
+  if(!st.opensAt) return {open:false, cls:'closed', text:t('closedNow')};
+  const when = st.dayOffset === 0 ? t('opensToday')
+             : st.dayOffset === 1 ? t('opensTomorrow')
+             : `${t('opens')} ${t('dayNames')[st.opensDay]}`;
+  return {open:false, cls:'closed', text:`${t('closedNow')} · ${when} ${fmtTime(st.opensAt)}`};
+}
+
+function openChipHTML(s){
+  const c = openChip(s);
+  return c ? `<div class="open-chip ${c.cls}" data-shop="${esc(s.id)}"><i></i>${esc(c.text)}</div>` : '';
+}
+
+function weekRowsHTML(s){
+  const h = s.hours, today = cairoNow().day;
+  if(h.mode === '24h') return `<div class="hours-row"><span>${t('allDay24')}</span></div>`;
+  return WEEK_ORDER.map(d => {
+    const sc = daySched(h, d);
+    const ok = sc && hhmm(sc.open) !== null && hhmm(sc.close) !== null;
+    const val = ok ? `<span>${fmtTime(sc.open)} – ${fmtTime(sc.close)}</span>` : `<span class="muted">${t('closedDay')}</span>`;
+    return `<div class="hours-row${d === today ? ' today' : ''}"><span>${t('dayNames')[d]}${d === today ? ` (${t('todayLabel')})` : ''}</span>${val}</div>`;
+  }).join('');
+}
+
+let onlyOpen = false;
+function refreshOpenChips(){
+  document.querySelectorAll('.open-chip[data-shop]').forEach(el => {
+    const s = SHOPS.find(x => x.id === el.dataset.shop);
+    const c = s && openChip(s);
+    if(!c){ el.remove(); return; }
+    el.className = 'open-chip ' + c.cls;
+    el.innerHTML = '<i></i>' + esc(c.text);
+  });
+  if(onlyOpen && currentView === 'list') renderShopList({fast:true});
+}
+
 function shopCardHTML(s, i, opts){
   opts = opts || {};
   const q = opts.q || '';
@@ -974,6 +1112,7 @@ function shopCardHTML(s, i, opts){
         <div class="shop-name">${hl(s.name[LANG], q)}${s.featured ? ` <span class="feat-badge">⭐ ${t('featuredBadge')}</span>` : ''}</div>
         <div class="shop-tag">${hl(s.tag[LANG], q)}</div>
         <div class="shop-addr">${ICON.pin}<span>${hl(s.address[LANG], q)}</span></div>
+        ${openChipHTML(s)}
       </div>
       <div class="chevron">${ICON.chevron}</div>
     </div>`;
@@ -1006,10 +1145,17 @@ function renderShopList(opts){
     title.textContent = cat ? cat.label[LANG] : '';
     shops = SHOPS.filter(s => s.catId === currentCatId);
   }
+  $('filterBar').hidden = !SHOPS.some(s => s.hours);
+  const fbtn = $('openFilter');
+  fbtn.textContent = t('filterOpen');
+  fbtn.classList.toggle('on', onlyOpen);
+  if(onlyOpen) shops = shops.filter(s => { const st = hoursStatus(s.hours); return !!(st && st.open); });
   count.textContent = shops.length ? `${shops.length} ${searchQuery ? t('resultsCount') : t('shopsCount')}` : '';
   box.innerHTML = shops.length
     ? shops.map((s, i) => shopCardHTML(s, i, {q:searchQuery, fast:opts.fast})).join('')
-    : noResultsHTML();
+    : (onlyOpen
+        ? `<div class="state-card"><div class="state-emoji">🌙</div><div class="state-title">${t('noOpenNow')}</div><div class="state-hint">${t('noOpenNowHint')}</div></div>`
+        : noResultsHTML());
   observeReveals(box);
   if(searchQuery) trackSearch();
 }
@@ -1040,6 +1186,17 @@ function renderShopDetail(id){
           <div class="info-icon">${ICON.pin}</div>
           <div class="info-text"><div class="info-label">${t('addressLabel')}</div>${esc(s.address[LANG])}</div>
         </div>`;
+  const chip = openChip(s);
+  const hoursRow = chip ? `
+          <div class="info-row tap d-anim" style="--d:7" onclick="this.classList.toggle('open')">
+            <div class="info-icon">${ICON.clock}</div>
+            <div class="info-text">
+              <div class="info-label">${t('hoursLabel')}</div>
+              <div class="open-chip ${chip.cls}" data-shop="${esc(s.id)}"><i></i>${esc(chip.text)}</div>
+              <div class="info-hint">${t('showWeek')} ▾</div>
+              <div class="hours-list">${weekRowsHTML(s)}</div>
+            </div>
+          </div>` : '';
   $('detailContent').innerHTML = `
     <div class="detail-wrap">
       <div class="detail-banner d-anim" style="--d:0;background:linear-gradient(135deg,${c},${dark})">
@@ -1063,7 +1220,8 @@ function renderShopDetail(id){
           ${menuHTML}
           <div class="ticket-divider d-anim" style="--d:5"><span class="dot"></span></div>
           ${mapRow}
-          <div class="info-row tap d-anim" style="--d:7" onclick="copyText('${esc(s.phone)}')">
+          ${hoursRow}
+          <div class="info-row tap d-anim" style="--d:8" onclick="copyText('${esc(s.phone)}')">
             <div class="info-icon">${ICON.phone}</div>
             <div class="info-text"><div class="info-label">${t('phoneLabel')}</div><span dir="ltr">${esc(s.phone)}</span><div class="info-hint">${t('tapCopy')}</div></div>
           </div>
@@ -1440,6 +1598,7 @@ $('soundBtn').addEventListener('click', toggleSound);
 $('themeBtn').addEventListener('click', toggleTheme);
 $('langBtn').addEventListener('click', toggleLang);
 $('listBack').addEventListener('click', goBack);
+$('openFilter').addEventListener('click', () => { onlyOpen = !onlyOpen; renderShopList({fast:true}); });
 $('searchInput').addEventListener('input', onSearchInput);
 $('sClear').addEventListener('click', clearSearch);
 $('fab').addEventListener('click', () => window.scrollTo({top:0, behavior:'smooth'}));
@@ -1467,6 +1626,7 @@ applyStaticText();
 renderSkeleton();
 startPlaceholder();
 loadData().then(() => { renderAll(); routeFromHash(); });
+setInterval(refreshOpenChips, 60000);
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
