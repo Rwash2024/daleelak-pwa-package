@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>لوحة التحكم — دليلك (بروفة)</title>
+<meta name="robots" content="noindex,nofollow">
+<title>لوحة التحكم — دليلك</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lalezar&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
@@ -185,14 +186,25 @@
 
 <div class="modal-overlay" id="reportModalOverlay">
   <div class="modal" style="max-width:640px;">
-    <h3>التقرير المالي</h3>
-    <div class="hint">كل محل، الباقة بتاعته، المبلغ، حالة التحصيل، وباقي قد إيه على انتهاء الاشتراك</div>
+    <h3>التقرير</h3>
+    <div class="hint">كل محل: الباقة والمبلغ وحالة التحصيل وباقي قد إيه على الانتهاء — وكام مرة اتفتح واتعمل له اتصال</div>
+    <div class="field-group" style="max-width:220px;">
+      <label>فترة الإحصائيات</label>
+      <select id="reportDays" onchange="openReport()">
+        <option value="7">آخر 7 أيام</option>
+        <option value="30" selected>آخر 30 يوم</option>
+        <option value="90">آخر 90 يوم</option>
+      </select>
+    </div>
     <div class="stats" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px;">
       <div class="stat-card"><div class="stat-num" id="reportCollected">0 ج</div><div class="stat-label">متحصّل</div></div>
       <div class="stat-card"><div class="stat-num" id="reportPending">0 ج</div><div class="stat-label">لسه هيتحصّل</div></div>
       <div class="stat-card"><div class="stat-num" id="reportTotal">0 ج</div><div class="stat-label">الإجمالي</div></div>
     </div>
-    <div id="reportRows" style="max-height:50vh;overflow-y:auto;"></div>
+    <div id="reportRows" style="max-height:42vh;overflow-y:auto;"></div>
+    <h3 style="margin-top:18px;font-size:15px;">🔎 العملاء بيدوروا على إيه؟</h3>
+    <div class="hint" style="margin-bottom:8px;">بحث من غير نتيجة معناه محل أو قسم ناقص — فرصة تضيفه</div>
+    <div id="reportSearches" style="max-height:24vh;overflow-y:auto;"></div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeReport()">قفل</button>
     </div>
@@ -809,16 +821,37 @@ async function savePrices(){
   showToast('اتحفظت الأسعار');
 }
 
-function openReport(){
+/* search terms come from anonymous visitors, so they must be escaped before going into innerHTML */
+function esc(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+
+async function openReport(){
+  document.getElementById('reportModalOverlay').classList.add('active');
+  document.getElementById('reportRows').innerHTML = '<div class="empty">جاري التحميل...</div>';
+  const days = Number(document.getElementById('reportDays').value) || 30;
+  const [statsRes, searchRes] = await Promise.all([
+    db.rpc('shop_stats', {p_days: days}),
+    db.rpc('search_insights', {p_days: days})
+  ]);
+  const statsOk = !statsRes.error;
+  const STATS = {};
+  if(statsOk) (statsRes.data || []).forEach(r => { STATS[r.shop_id] = r; });
+
   let collected = 0, pending = 0;
   const rows = SHOPS.map(s => {
     const b = BILLING[s.id] || {plan:'none', price:0, collected:false};
     if(b.collected) collected += b.price; else pending += b.price;
+    const st = STATS[s.id] || {views:0, calls:0, whatsapps:0, maps:0};
+    const usage = statsOk
+      ? `<div class="row-meta" style="margin-top:3px;">👁 ${st.views} فتح · 📞 ${st.calls} اتصال · 💬 ${st.whatsapps} واتساب · 📍 ${st.maps} خريطة</div>`
+      : '';
     return `
       <div class="shop-row">
         <div class="row-info">
-          <div class="row-name">${s.name_ar}</div>
+          <div class="row-name">${esc(s.name_ar)}</div>
           <div class="row-meta">${PLAN_LABELS[b.plan] || b.plan} · ${b.price} ج</div>
+          ${usage}
         </div>
         <div class="row-actions">
           <span class="expiry-badge ${b.collected ? 'expiry-ok' : 'expiry-soon'}">${b.collected ? 'اتحصّل' : 'لسه'}</span>
@@ -831,7 +864,21 @@ function openReport(){
   document.getElementById('reportCollected').textContent = collected + ' ج';
   document.getElementById('reportPending').textContent = pending + ' ج';
   document.getElementById('reportTotal').textContent = (collected + pending) + ' ج';
-  document.getElementById('reportModalOverlay').classList.add('active');
+
+  const sBox = document.getElementById('reportSearches');
+  if(searchRes.error){
+    sBox.innerHTML = '<div class="empty">الإحصائيات لسه مش مفعّلة — شغّل ملف 02_analytics.sql في Supabase</div>';
+  } else {
+    const list = searchRes.data || [];
+    sBox.innerHTML = list.length ? list.map(r => `
+      <div class="shop-row" style="padding:8px 12px;margin-bottom:6px;">
+        <div class="row-info"><div class="row-name">${esc(r.term)}</div></div>
+        <div class="row-actions">
+          <span class="expiry-badge expiry-none">${r.searches} مرة</span>
+          ${r.empty_searches > 0 ? `<span class="expiry-badge expiry-over">${r.empty_searches} من غير نتيجة</span>` : ''}
+        </div>
+      </div>`).join('') : '<div class="empty">لسه مفيش عمليات بحث متسجلة</div>';
+  }
 }
 
 function closeReport(){

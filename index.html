@@ -147,6 +147,7 @@
   }
   .shop-info{flex:1;min-width:0;}
   .shop-name{font-weight:700;font-size:15px;}
+  .feat-badge{display:inline-block;vertical-align:middle;margin-inline-start:6px;background:linear-gradient(110deg,var(--gold),#FFD58A);color:#4A2E06;font-size:10px;font-weight:800;padding:2px 8px;border-radius:10px;white-space:nowrap;}
   .shop-tag{font-size:12px;color:var(--gold-dark);font-weight:500;}
   .shop-addr{font-size:12px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:4px;}
   .chevron{color:var(--muted);font-size:18px;flex-shrink:0;}
@@ -323,7 +324,7 @@ const I18N = {
     brandName:'دليلك', brandSub:'دليلك لمحلات الحي', area:'📍 النزهة، قباء',
     search:'دور على محل، مطعم، أو أكلة...',
     sectionsTitle:'الأقسام', sectionsSub:'اختار نوع المحل',
-    featuredTitle:'مطاعم مقترحة', featuredSub:'من قسم الفاست فود والأكل الشعبي',
+    featuredTitle:'محلات الحي', featuredSub:'المميزة أولًا', featuredBadge:'مميز',
     shopsCount:'محل', comingSoon:'قريبًا', back:'→ رجوع',
     addressLabel:'العنوان', phoneLabel:'تليفون',
     call:'📞 اتصال', whatsapp:'💬 واتساب', map:'🗺️ الموقع',
@@ -335,7 +336,7 @@ const I18N = {
     brandName:'Daleelak', brandSub:'Your neighborhood shop guide', area:'📍 Nozha, Qubaa',
     search:'Search for a shop, restaurant, or dish...',
     sectionsTitle:'Categories', sectionsSub:'Pick a shop type',
-    featuredTitle:'Featured restaurants', featuredSub:'From fast food and local eats',
+    featuredTitle:'Neighborhood shops', featuredSub:'Featured first', featuredBadge:'Featured',
     shopsCount:'shops', comingSoon:'Soon', back:'← Back',
     addressLabel:'Address', phoneLabel:'Phone',
     call:'📞 Call', whatsapp:'💬 WhatsApp', map:'🗺️ Location',
@@ -352,22 +353,61 @@ const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let CATS = [];
 let SHOPS = [];
 
+/* anonymous usage events: no personal data, only what was tapped/searched */
+const SESSION_ID = (() => {
+  try{
+    let s = sessionStorage.getItem('dl_sid');
+    if(!s){ s = Math.random().toString(36).slice(2) + Date.now().toString(36); sessionStorage.setItem('dl_sid', s); }
+    return s;
+  }catch(e){ return null; }
+})();
+function track(type, shopId, query){
+  try{ db.from('events').insert({type, shop_id:shopId || null, query:query || null, session:SESSION_ID}).then(() => {}, () => {}); }catch(e){}
+}
+const viewedShops = new Set();
+function trackView(id){ if(viewedShops.has(id)) return; viewedShops.add(id); track('view', id); }
+let searchTrackTimer = null, lastTrackedQuery = '';
+function trackSearch(){
+  clearTimeout(searchTrackTimer);
+  const q = searchQuery;
+  if(q.length < 2) return;
+  searchTrackTimer = setTimeout(() => {
+    if(q !== searchQuery || q === lastTrackedQuery) return;
+    lastTrackedQuery = q;
+    track(SHOPS.some(s => matchesSearch(s, q)) ? 'search' : 'search_empty', null, q);
+  }, 900);
+}
+document.addEventListener('click', e => {
+  const a = e.target.closest('[data-track]');
+  if(a) track(a.dataset.track, lastShopId);
+});
+
 async function loadData(){
-  const [{data: cats, error: catsErr}, {data: shops, error: shopsErr}] = await Promise.all([
-    db.from('categories').select('*').order('sort_order'),
-    db.from('shops').select('*').order('created_at')
+  const [shopsFirst, catsRes] = await Promise.all([
+    db.from('public_shops').select('*').order('created_at'),
+    db.from('categories').select('*').order('sort_order')
   ]);
-  if(catsErr) console.error(catsErr);
-  if(shopsErr) console.error(shopsErr);
+  let shopsRes = shopsFirst;
+  // keeps the site working until the public_shops view exists
+  if(shopsRes.error) shopsRes = await db.from('shops').select('*').order('created_at');
+  if(catsRes.error) console.error(catsRes.error);
+  if(shopsRes.error) console.error(shopsRes.error);
+  const shops = shopsRes.data, cats = catsRes.data;
+  const today = new Date().toISOString().slice(0, 10);
 
   SHOPS = (shops||[]).map(s => ({
     id:s.id, catId:s.category_id, icon:s.icon, color:s.color, logoUrl:s.logo_url,
+    created:s.created_at || '',
+    featured: s.is_featured !== undefined ? !!s.is_featured
+      : (s.plan === 'lifetime' || (!!s.plan && s.plan !== 'none' && !!s.expiry_date && s.expiry_date >= today)),
     name:{ar:s.name_ar, en:s.name_en || s.name_ar},
     tag:{ar:s.tag || '', en:s.tag || ''},
     address:{ar:s.address || '', en:s.address || ''},
     phone:s.phone, whatsapp:s.whatsapp || s.phone,
     mapUrl:s.map_url || '#', menu:(s.menu_images && s.menu_images.length) ? s.menu_images : ['🏪']
   }));
+  // paying shops first; inside each group keep the order they were added
+  SHOPS.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
   CATS = (cats||[]).map(c => ({
     id:c.id, icon:c.icon, imageUrl:c.image_url, label:{ar:c.label,en:c.label},
     active: SHOPS.some(s=>s.catId===c.id)
@@ -412,7 +452,7 @@ function shopCardHTML(s){
     <div class="shop-card" onclick="openShop('${s.id}')">
       <div class="shop-logo" style="background:${s.color};overflow:hidden;">${logoInner(s)}</div>
       <div class="shop-info">
-        <div class="shop-name">${s.name[LANG]}</div>
+        <div class="shop-name">${s.name[LANG]}${s.featured ? ` <span class="feat-badge">⭐ ${t('featuredBadge')}</span>` : ''}</div>
         <div class="shop-tag">${s.tag[LANG]}</div>
         <div class="shop-addr">📍 ${s.address[LANG]}</div>
       </div>
@@ -422,7 +462,10 @@ function shopCardHTML(s){
 }
 
 function renderFeatured(){
-  document.getElementById('featuredList').innerHTML = SHOPS.slice(0,3).map(shopCardHTML).join('');
+  // paying shops first (they carry the badge), then the newest ones
+  const newest = SHOPS.filter(s => !s.featured).sort((a, b) => b.created.localeCompare(a.created));
+  const list = SHOPS.filter(s => s.featured).concat(newest).slice(0, 4);
+  document.getElementById('featuredList').innerHTML = list.map(shopCardHTML).join('');
 }
 
 let currentCatId = 'food';
@@ -448,6 +491,7 @@ function renderShopList(){
   document.getElementById('shopList').innerHTML = shops.length
     ? shops.map(shopCardHTML).join('')
     : `<div style="text-align:center;color:var(--muted);font-size:13px;padding:30px 10px;">${t('noResults')}</div>`;
+  if(searchQuery) trackSearch();
 }
 
 function showHome(){
@@ -492,7 +536,7 @@ function renderShopDetail(id){
         <div class="detail-top">
           <div class="detail-logo" style="background:${s.color};overflow:hidden;">${logoInner(s)}</div>
           <div>
-            <div class="detail-name">${s.name[LANG]}</div>
+            <div class="detail-name">${s.name[LANG]}${s.featured ? ` <span class="feat-badge">⭐ ${t('featuredBadge')}</span>` : ''}</div>
             <div class="detail-tag">${s.tag[LANG]}</div>
           </div>
         </div>
@@ -513,9 +557,9 @@ function renderShopDetail(id){
           <div class="info-text"><div class="info-label">${t('phoneLabel')}</div>${s.phone}</div>
         </div>
         <div class="action-row">
-          <a class="btn btn-call" href="tel:${s.phone}">${t('call')}</a>
-          <a class="btn btn-whatsapp" href="https://wa.me/${s.whatsapp}" target="_blank">${t('whatsapp')}</a>
-          <a class="btn btn-map" href="${s.mapUrl}" target="_blank">${t('map')}</a>
+          <a class="btn btn-call" data-track="call" href="tel:${s.phone}">${t('call')}</a>
+          <a class="btn btn-whatsapp" data-track="whatsapp" href="https://wa.me/${s.whatsapp}" target="_blank">${t('whatsapp')}</a>
+          <a class="btn btn-map" data-track="map" href="${s.mapUrl}" target="_blank">${t('map')}</a>
         </div>
       </div>
     </div>
@@ -537,6 +581,7 @@ let lastShopId = null;
 function openShop(id){
   currentView = 'detail';
   lastShopId = id;
+  trackView(id);
   renderShopDetail(id);
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-detail').classList.add('active','fade-in');

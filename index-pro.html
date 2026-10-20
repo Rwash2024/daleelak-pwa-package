@@ -307,6 +307,7 @@
   .shop-logo img{width:100%;height:100%;object-fit:contain;}
   .shop-info{flex:1;min-width:0;}
   .shop-name{font-weight:800;font-size:16px;line-height:1.3;}
+  .feat-badge{display:inline-block;vertical-align:middle;margin-inline-start:6px;background:linear-gradient(110deg,var(--gold),#FFD58A);color:#4A2E06;font-size:10px;font-weight:800;padding:2px 8px;border-radius:10px;white-space:nowrap;font-family:'Tajawal',sans-serif;}
   .shop-tag{font-size:12.5px;color:var(--gold-dark);font-weight:600;margin-top:1px;}
   .shop-addr{font-size:12px;color:var(--muted);margin-top:4px;display:flex;align-items:flex-start;gap:4px;line-height:1.45;}
   .shop-addr svg{width:13px;height:13px;flex-shrink:0;margin-top:2px;color:var(--red);}
@@ -684,7 +685,7 @@ const I18N = {
     brandName:'دليلك', brandSub:'دليلك لمحلات الحي', area:'النزهة، قباء',
     searchPrefix:'دور على', searchWords:['مطعم','كافيه','صيدلية','سوبر ماركت'],
     sectionsTitle:'الأقسام', sectionsSub:'اختار نوع المحل',
-    featuredTitle:'محلات مميزة', featuredSub:'اختيارات الحي',
+    featuredTitle:'محلات الحي', featuredSub:'المميزة أولًا', featuredBadge:'مميز',
     shopsCount:'محل', comingSoon:'قريبًا', back:'رجوع', share:'مشاركة',
     addressLabel:'العنوان', phoneLabel:'تليفون', tapCopy:'دوس للنسخ', openMap:'افتح على الخريطة',
     menuTitle:'المنيو والعروض', soundTitle:'الصوت',
@@ -701,7 +702,7 @@ const I18N = {
     brandName:'Daleelak', brandSub:'Your neighborhood shop guide', area:'Nozha, Qubaa',
     searchPrefix:'Search for', searchWords:['a restaurant','a cafe','a pharmacy','a supermarket'],
     sectionsTitle:'Categories', sectionsSub:'Pick a shop type',
-    featuredTitle:'Featured shops', featuredSub:'Neighborhood picks',
+    featuredTitle:'Neighborhood shops', featuredSub:'Featured first', featuredBadge:'Featured',
     shopsCount:'shops', comingSoon:'Soon', back:'Back', share:'Share',
     addressLabel:'Address', phoneLabel:'Phone', tapCopy:'Tap to copy', openMap:'Open in maps',
     menuTitle:'Menu & offers', soundTitle:'Sound',
@@ -759,24 +760,64 @@ function copyText(text, msg){
 }
 
 /* =========================================================
+   anonymous usage events (no personal data)
+   ========================================================= */
+const SESSION_ID = (() => {
+  try{
+    let s = sessionStorage.getItem('dl_sid');
+    if(!s){ s = Math.random().toString(36).slice(2) + Date.now().toString(36); sessionStorage.setItem('dl_sid', s); }
+    return s;
+  }catch(e){ return null; }
+})();
+function track(type, shopId, query){
+  try{ db.from('events').insert({type, shop_id:shopId || null, query:query || null, session:SESSION_ID}).then(() => {}, () => {}); }catch(e){}
+}
+const viewedShops = new Set();
+function trackView(id){ if(viewedShops.has(id)) return; viewedShops.add(id); track('view', id); }
+let searchTrackTimer = null, lastTrackedQuery = '';
+function trackSearch(){
+  clearTimeout(searchTrackTimer);
+  const q = searchQuery;
+  if(q.length < 2) return;
+  searchTrackTimer = setTimeout(() => {
+    if(q !== searchQuery || q === lastTrackedQuery) return;
+    lastTrackedQuery = q;
+    const found = SHOPS.some(s => [s.name[LANG], s.tag[LANG], s.address[LANG]].join(' ').toLowerCase().includes(q.toLowerCase()));
+    track(found ? 'search' : 'search_empty', null, q);
+  }, 900);
+}
+document.addEventListener('click', e => {
+  const a = e.target.closest('[data-track]');
+  if(a) track(a.dataset.track, currentShopId);
+});
+
+/* =========================================================
    data
    ========================================================= */
 async function loadData(){
   loading = true; loadFailed = false;
   try{
-    const [c, s] = await Promise.all([
+    let [c, s] = await Promise.all([
       db.from('categories').select('*').order('sort_order'),
-      db.from('shops').select('*').order('created_at')
+      db.from('public_shops').select('*').order('created_at')
     ]);
+    // keeps the site working until the public_shops view exists
+    if(s.error) s = await db.from('shops').select('*').order('created_at');
     if(c.error || s.error) throw (c.error || s.error);
+    const today = new Date().toISOString().slice(0, 10);
     SHOPS = (s.data || []).map(x => ({
       id:x.id, catId:x.category_id, icon:x.icon || '🏪', color:x.color || '#D93829', logoUrl:x.logo_url,
+      created:x.created_at || '',
+      featured: x.is_featured !== undefined ? !!x.is_featured
+        : (x.plan === 'lifetime' || (!!x.plan && x.plan !== 'none' && !!x.expiry_date && x.expiry_date >= today)),
       name:{ar:x.name_ar, en:x.name_en || x.name_ar},
       tag:{ar:x.tag || '', en:x.tag || ''},
       address:{ar:x.address || '', en:x.address || ''},
       phone:x.phone || '', whatsapp:x.whatsapp || x.phone || '',
       mapUrl:x.map_url || '', menu:Array.isArray(x.menu_images) ? x.menu_images.filter(Boolean) : []
     }));
+    // paying shops first; inside each group keep the order they were added
+    SHOPS.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
     CATS = (c.data || []).map(x => ({
       id:x.id, icon:x.icon, imageUrl:x.image_url, label:{ar:x.label, en:x.label},
       active:SHOPS.some(sh => sh.catId === x.id)
@@ -931,7 +972,7 @@ function shopCardHTML(s, i, opts){
     <div class="shop-card rip reveal${opts.fast ? ' in fast' : ''}" style="--i:${Math.min(i,10)}" role="button" tabindex="0" onclick="openShop('${esc(s.id)}')">
       ${logoTile(s, 'shop-logo')}
       <div class="shop-info">
-        <div class="shop-name">${hl(s.name[LANG], q)}</div>
+        <div class="shop-name">${hl(s.name[LANG], q)}${s.featured ? ` <span class="feat-badge">⭐ ${t('featuredBadge')}</span>` : ''}</div>
         <div class="shop-tag">${hl(s.tag[LANG], q)}</div>
         <div class="shop-addr">${ICON.pin}<span>${hl(s.address[LANG], q)}</span></div>
       </div>
@@ -943,7 +984,10 @@ function renderFeatured(){
   const box = $('featuredList');
   if(loading){ return; }
   if(loadFailed){ box.innerHTML = ''; return; }
-  box.innerHTML = SHOPS.slice(0, 4).map((s, i) => shopCardHTML(s, i)).join('');
+  // paying shops first (they carry the badge), then the newest ones
+  const newest = SHOPS.filter(s => !s.featured).sort((a, b) => b.created.localeCompare(a.created));
+  const list = SHOPS.filter(s => s.featured).concat(newest).slice(0, 4);
+  box.innerHTML = list.map((s, i) => shopCardHTML(s, i)).join('');
   observeReveals(box);
 }
 
@@ -968,6 +1012,7 @@ function renderShopList(opts){
     ? shops.map((s, i) => shopCardHTML(s, i, {q:searchQuery, fast:opts.fast})).join('')
     : noResultsHTML();
   observeReveals(box);
+  if(searchQuery) trackSearch();
 }
 
 function renderShopDetail(id){
@@ -988,7 +1033,7 @@ function renderShopDetail(id){
         </div>
       </div>` : '';
   const mapRow = s.mapUrl ? `
-        <a class="info-row tap d-anim" style="--d:6;text-decoration:none" href="${esc(s.mapUrl)}" target="_blank" rel="noopener">
+        <a class="info-row tap d-anim" data-track="map" style="--d:6;text-decoration:none" href="${esc(s.mapUrl)}" target="_blank" rel="noopener">
           <div class="info-icon">${ICON.pin}</div>
           <div class="info-text"><div class="info-label">${t('addressLabel')}</div>${esc(s.address[LANG])}<div class="info-hint">${t('openMap')}</div></div>
         </a>` : `
@@ -1012,7 +1057,7 @@ function renderShopDetail(id){
           <div class="detail-top">
             ${logoTile(s, 'detail-logo')}
             <div class="detail-head d-anim" style="--d:2">
-              <div class="detail-name display">${esc(s.name[LANG])}</div>
+              <div class="detail-name display">${esc(s.name[LANG])}${s.featured ? ` <span class="feat-badge">⭐ ${t('featuredBadge')}</span>` : ''}</div>
               <div class="detail-tag">${esc(s.tag[LANG])}</div>
             </div>
           </div>
@@ -1026,9 +1071,9 @@ function renderShopDetail(id){
         </div>
       </div>
       <div class="action-bar">
-        <a class="btn btn-call rip" href="tel:${esc(s.phone)}">${ICON.phone} ${t('call')}</a>
-        <a class="btn btn-whatsapp rip" href="${waLink(esc(s.whatsapp))}" target="_blank" rel="noopener">${ICON.chat} ${t('whatsapp')}</a>
-        ${s.mapUrl ? `<a class="btn btn-map rip" href="${esc(s.mapUrl)}" target="_blank" rel="noopener">${ICON.pin} ${t('map')}</a>` : ''}
+        <a class="btn btn-call rip" data-track="call" href="tel:${esc(s.phone)}">${ICON.phone} ${t('call')}</a>
+        <a class="btn btn-whatsapp rip" data-track="whatsapp" href="${waLink(esc(s.whatsapp))}" target="_blank" rel="noopener">${ICON.chat} ${t('whatsapp')}</a>
+        ${s.mapUrl ? `<a class="btn btn-map rip" data-track="map" href="${esc(s.mapUrl)}" target="_blank" rel="noopener">${ICON.pin} ${t('map')}</a>` : ''}
       </div>
     </div>`;
 }
@@ -1108,6 +1153,7 @@ function applyState(s){
   }
   if(s.v === 'shop'){
     currentView = 'detail'; currentShopId = s.id;
+    trackView(s.id);
     renderShopDetail(s.id); return 'view-detail';
   }
   currentView = 'home'; searchQuery = ''; $('searchInput').value = ''; updateClear();
@@ -1171,6 +1217,7 @@ function routeFromHash(){
 }
 
 async function shareShop(id){
+  track('share', id);
   const s = SHOPS.find(x => x.id === id);
   const url = location.origin + location.pathname + '#shop=' + encodeURIComponent(id);
   if(navigator.share && /^https?:/.test(url)){
