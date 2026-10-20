@@ -515,11 +515,32 @@ function renderCatRows(){
 
 let pendingCatImageUrl = null;
 
+/* shrink phone-sized photos before upload: longest side capped, re-encoded as WebP.
+   Falls back to the original file if anything about it is unsupported (HEIC, Safari WebP encoding, tiny files...). */
+async function compressImage(file, maxSide){
+  if(!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size < 150 * 1024) return file;
+  try{
+    const bmp = await createImageBitmap(file);
+    const scale = Math.min(1, maxSide / Math.max(bmp.width, bmp.height));
+    const w = Math.max(1, Math.round(bmp.width * scale)), h = Math.max(1, Math.round(bmp.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(bmp, 0, 0, w, h);
+    const blob = await new Promise(res => canvas.toBlob(res, 'image/webp', 0.82));
+    return (blob && blob.type === 'image/webp' && blob.size < file.size) ? blob : file;
+  }catch(e){ return file; }
+}
+function imageExt(blob, original){
+  return blob.type === 'image/webp' ? 'webp' : (original.name.split('.').pop() || 'jpg').toLowerCase();
+}
+function kb(n){ return n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.round(n / 1024) + ' KB'; }
+
 async function uploadCatImage(input){
-  const file = input.files[0];
-  if(!file) return;
-  const path = `cat-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${file.name.split('.').pop()}`;
-  const {error} = await db.storage.from('shop-images').upload(path, file);
+  const original = input.files[0];
+  if(!original) return;
+  const file = await compressImage(original, 700);
+  const path = `cat-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${imageExt(file, original)}`;
+  const {error} = await db.storage.from('shop-images').upload(path, file, {contentType: file.type || original.type});
   if(error){ showToast('حصل خطأ في رفع الصورة'); console.error(error); return; }
   const {data} = db.storage.from('shop-images').getPublicUrl(path);
   pendingCatImageUrl = data.publicUrl;
@@ -637,16 +658,17 @@ let pendingLogoUrl = null;
 let pendingMenuUrls = [null,null,null,null];
 
 async function uploadImage(input, slot){
-  const file = input.files[0];
-  if(!file) return;
+  const original = input.files[0];
+  if(!original) return;
   const hint = document.getElementById('uploadHint');
-  hint.textContent = 'بيرفع الصورة...';
-  const path = `${slot}-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${file.name.split('.').pop()}`;
-  const {error} = await db.storage.from('shop-images').upload(path, file);
+  hint.textContent = 'بيجهّز الصورة ويرفعها...';
+  const file = await compressImage(original, slot === 'logo' ? 700 : 1400);
+  const path = `${slot}-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${imageExt(file, original)}`;
+  const {error} = await db.storage.from('shop-images').upload(path, file, {contentType: file.type || original.type});
   if(error){ hint.textContent = 'حصل خطأ في رفع الصورة'; console.error(error); return; }
   const {data} = db.storage.from('shop-images').getPublicUrl(path);
   const url = data.publicUrl;
-  hint.textContent = '';
+  hint.textContent = file === original ? '' : `اتضغطت من ${kb(original.size)} إلى ${kb(file.size)} ✓`;
   if(slot === 'logo'){
     pendingLogoUrl = url;
     renderPreview(document.getElementById('logoPreview'), url, '🏪', 'contain', 'logoRemoveBtn');
